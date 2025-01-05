@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 [assembly: InternalsVisibleTo("UtilTests")]
 
-namespace Tile_Slayer
+namespace Primary_Puzzle_Solver
 {
     internal static class Util
     {

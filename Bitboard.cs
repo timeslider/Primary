@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Numerics;
@@ -11,7 +12,7 @@ using System.Threading.Tasks;
 
 [assembly: InternalsVisibleTo("UtilTests")]
 
-namespace Tile_Slayer
+namespace Primary_Puzzle_Solver
 {
     /// <summary>
     /// Represents a bitboard of size x, y.
@@ -33,8 +34,8 @@ namespace Tile_Slayer
         private int red = 0;
         private int yellow = 0;
         private int blue = 0;
-        private int state = 0;
-        public int State { get { return state; } set { SetState(); } }
+        //private int state = 0;
+        public int State { get { return GetState(); } }
         private List<ulong> boundaries = new();
 
 
@@ -174,22 +175,6 @@ namespace Tile_Slayer
 
         public void GetInitialState()
         {
-            //int i = 0;
-            //for (int row = 0; row < sizeY && i == 0; row++)
-            //{
-            //    for (int col = 0; col < sizeX && i == 0; col++)
-            //    {
-            //        if(GetBitboardCell(col, row) == false && i == 0)
-            //        {
-            //            Red = (ulong)(Math.Pow(2,row * sizeX + col));
-            //            i++;
-            //        }
-            //    }
-            //}
-            //(int x, int y) RedIndicees = Util.FindXYofIndices(Red);
-            //GetBitboardCell(Red << 1);
-
-
             // Find red's index
             for (int i = 0; i < 64; i++)
             {
@@ -249,24 +234,9 @@ namespace Tile_Slayer
 
         public void PrintStateSplit()
         {
-            for (int i = 0; i < 3; i++)
-            {
-                int temp = (state >> (i * 6)) & 63;
-                switch (i)
-                {
-                    case 0:
-                        Console.WriteLine($"Red: {temp}");
-                        break;
-                    case 1:
-                        Console.WriteLine($"Yellow: {temp}");
-                        break;
-                    case 2:
-                        Console.WriteLine($"Blue: {temp}");
-                        break;
-                    default:
-                        break;
-                }
-            }
+            Console.WriteLine($"Red: {red}");
+            Console.WriteLine($"Yellow: {yellow}");
+            Console.WriteLine($"Blue: {blue}");
         }
 
         /// <summary>
@@ -281,7 +251,7 @@ namespace Tile_Slayer
             // Generate the top row: This works
             for (int i = 0; i < sizeX; i++)
             {
-                temp += 1UL << i;
+                temp |= 1UL << i;
             }
             boundaries.Add(temp);
             temp = 0UL;
@@ -289,7 +259,7 @@ namespace Tile_Slayer
             // Generate the right col: Missing one at the bottom
             for (int i = 0; i < sizeY; i++)
             {
-                temp += 1UL << sizeX * (i + 1) - 1;
+                temp |= 1UL << sizeX * (i + 1) - 1;
             }
             boundaries.Add(temp);
             temp = 0UL;
@@ -297,7 +267,7 @@ namespace Tile_Slayer
             // Generate the bottom row
             for (int i = 0; i < sizeX; i++)
             {
-                temp += 1UL << (sizeX * (sizeY - 1)) + i;
+                temp |= 1UL << (sizeX * (sizeY - 1)) + i;
             }
             boundaries.Add(temp);
             temp = 0UL;
@@ -305,28 +275,36 @@ namespace Tile_Slayer
             // Generate the left col
             for (int i = 0; i < sizeY; i++)
             {
-                temp += 1UL << i * sizeX;
+                temp |= 1UL << i * sizeX;
             }
             boundaries.Add(temp);
             temp = 0UL;
         }
 
-        public void PrintState()
+        public int GetState()
         {
-            Console.WriteLine(state);
+            return red | (yellow << 6) | (blue << 12);
         }
 
-
-        public void SetState()
-        {
-            state = red | (yellow << 6) | (blue << 12);
-        }
-
+        /// <summary>
+        /// Sets the state from red, yellow, and blue
+        /// </summary>
+        /// <param name="red"></param>
+        /// <param name="yellow"></param>
+        /// <param name="blue"></param>
         public void SetState(int red, int yellow, int blue)
         {
             this.red = red;
             this.yellow = yellow;
             this.blue = blue;
+            //state = red | (yellow << 6) | (blue << 12);
+        }
+
+        public void SetState(int existingState)
+        {
+            this.red = existingState & 0x3f;
+            this.yellow = (existingState >> 6) & 0x3f;
+            this.red = (existingState >> 12) & 0x3f;
         }
 
         public enum Direction
@@ -337,7 +315,7 @@ namespace Tile_Slayer
             Right,
         }
 
-        public void GetNewState(Direction direction)
+        public int GetNewState(Direction direction)
         {
 
             // Colors
@@ -362,7 +340,7 @@ namespace Tile_Slayer
                     break;
                 case Direction.Right:
                     boundary = boundaries[1];
-                    moveDistance = sizeY;
+                    moveDistance = -1;
                     colors.Reverse();
                     break;
                 case Direction.Down:
@@ -372,7 +350,7 @@ namespace Tile_Slayer
                     break;
                 case Direction.Left:
                     boundary = boundaries[3];
-                    moveDistance = -sizeY;
+                    moveDistance = 1;
                     colors.Sort();
                     break;
                 default:
@@ -385,7 +363,7 @@ namespace Tile_Slayer
                 {
                     continue;
                 }
-                if (CheckOverlapColors(i, colors, direction) == true) // Would have overlapped another tile
+                if (CheckOverlapColors(i, colors, moveDistance) == true) // Would have overlapped another tile
                 {
                     continue;
                 }
@@ -421,107 +399,21 @@ namespace Tile_Slayer
                         break;
                 }
             }
+
+            return red | (yellow << 6) | (blue << 12);
         }
 
-        //public void GetNewState(Direction direction)
-        //{
-        //    //ulong tiles = (ulong)Math.Pow(2, state & 0x3f) + (ulong)Math.Pow(2, state >> 6 & 0x3f) + (ulong)Math.Pow(2, state >> 12 & 0x3f);
-        //    List<(ulong color, ulong comp, string c)> tiles = new List<(ulong color, ulong comp, string c)> ();
-
-        //    // Add color red and it's comp green
-        //    tiles.Add(((ulong)Math.Pow(2, state & 0x3f), (ulong)Math.Pow(2, state >> 6 & 0x3f) + (ulong)Math.Pow(2, state >> 12 & 0x3f), "R"));
-        //    // Add color yellow and it's comp purple
-        //    tiles.Add(((ulong)Math.Pow(2, state >> 6 & 0x3f), (ulong)Math.Pow(2, state & 0x3f) + (ulong)Math.Pow(2, state >> 12 & 0x3f), "Y"));
-        //    // Add color blue and it's comp orange
-        //    tiles.Add(((ulong)Math.Pow(2, state >> 12 & 0x3f), (ulong)Math.Pow(2, state & 0x3f) + (ulong)Math.Pow(2, state >> 6 & 0x3f), "B"));
-        //    // Sort: If we know the order, then it becomes very easy to check if tiles overly with other tiles or not
-
-
-        //    (ulong color, ulong comp, string c) temp = tiles[0];
-        //    if (tiles[0].color > tiles[1].color)
-        //    {
-        //        tiles[0] = tiles[1];
-        //        tiles[1] = temp;
-        //    }
-        //    if (tiles[1].color > tiles[2].color)
-        //    {
-        //        temp = tiles[1];
-        //        tiles[1] = tiles[2];
-        //        tiles[2] = temp;
-        //        if (tiles[0].color > tiles[1].color)
-        //        {
-        //            temp = tiles[0];
-        //            tiles[0] = tiles[1];
-        //            tiles[1] = temp;
-        //        }
-        //    }
-
-        //    if (direction == Direction.Up)
-        //    {
-        //        for (int i = 0; i < tiles.Count; i++)
-        //        {
-        //            if ((tiles[i].color >> SizeX | bitboardValue) != bitboardValue && (tiles[i].color >> sizeX | tiles[i].comp) != tiles[i].comp)
-        //            {
-        //                tiles[i] = (tiles[i].color >> sizeX, tiles[i].comp, tiles[i].c);
-        //            }
-        //        }
-        //    }
-
-        //    if (direction == Direction.Left)
-        //    {
-        //        for (int i = 0; i < tiles.Count; i++)
-        //        {
-        //            if ((tiles[i].color >> 1 | bitboardValue) != bitboardValue && (tiles[i].color >> 1 | tiles[i].comp) != tiles[i].comp)
-        //            {
-        //                tiles[i] = (tiles[i].color >> 1, tiles[i].comp, tiles[i].c);
-        //            }
-        //        }
-        //    }
-
-        //    if (direction == Direction.Down)
-        //    {
-        //        for (int i = tiles.Count - 1; i >= 0 ; i--)
-        //        {
-        //            if ((tiles[i].color << SizeX | bitboardValue) != bitboardValue && (tiles[i].color << sizeX | tiles[i].comp) != tiles[i].comp)
-        //            {
-        //                tiles[i] = (tiles[i].color << sizeX, tiles[i].comp, tiles[i].c);
-        //            }
-        //        }
-        //    }
-
-        //    if (direction == Direction.Right)
-        //    {
-        //        for (int i = tiles.Count - 1; i >= 0; i--)
-        //        {
-        //            if ((tiles[i].color << 1 | bitboardValue) != bitboardValue && (tiles[i].color << 1 | tiles[i].comp) != tiles[i].comp)
-        //            {
-        //                tiles[i] = (tiles[i].color << 1, tiles[i].comp, tiles[i].c);
-        //            }
-        //        }
-        //    }
-
-        //    // Convert tiles back into a state
-        //    int newState = 0;
-        //    foreach (var tile in tiles)
-        //    {
-        //        switch (tile.c)
-        //        {
-        //            case "R":
-        //                this.red = (int)Math.Log2(tile.color);
-        //                break;
-        //            case "Y":
-        //                this.yellow = ((int)Math.Log2(tile.color) & 0x3f) << 6;
-        //                break;
-        //            case "B":
-        //                this.blue = ((int)Math.Log2(tile.color) & 0x3f) << 6;
-        //                break;
-        //            default:
-        //                break;
-        //        }
-        //    }
-        //    // Return new state
-
-        //}
+        private (ulong boundary, int moveDistance, bool ShouldReverse) GetDirectionParameters(Direction direction)
+        {
+            return direction switch
+            {
+                Direction.Up => (boundaries[0], sizeX, false),
+                Direction.Right => (boundaries[0], sizeX, false),
+                Direction.Down => (boundaries[0], sizeX, false),
+                Direction.Left => (boundaries[0], sizeX, false),
+                _ => throw new ArgumentException("Invalid direction", nameof(direction)),
+            };
+        }
 
 
         // Helper methods
@@ -587,23 +479,21 @@ namespace Tile_Slayer
         /// </summary>
         /// <param name="color"></param>
         /// <returns></returns>
-        private bool CheckOverlapColors(int i, List<(ulong bitboard, char name)> colors, Direction direction)
+        private bool CheckOverlapColors(int i, List<(ulong bitboard, char name)> colors, int moveDistance)
         {
-            if (direction == Direction.Up)
+            for (int j = 0; j < colors.Count; j++) // Check if the other tiles are here
             {
-                for (int j = 0; j < colors.Count; j++) // Check if the other tiles are here
+                if (j == i) // Don't check yourself
                 {
-                    if (j == i) // Don't check yourself
-                    {
-                        continue;
-                    }
-
-                    if (((colors[i].bitboard >> sizeX) & (colors[j].bitboard)) != 0)
-                    {
-                        return true;
-                    }
+                    continue;
+                }
+                ;
+                if (((ShiftBitboardCell(colors[i].bitboard, moveDistance)) & (colors[j].bitboard)) != 0)
+                {
+                    return true;
                 }
             }
+            
             return false;
         }
 
@@ -617,6 +507,98 @@ namespace Tile_Slayer
             {
                 return bitboard << -shiftAmount;
             }
+        }
+
+        public string VisualizeBoundary()
+        {
+            var result = new StringBuilder();
+            for(int boundary = 0; boundary < boundaries.Count; boundary++)
+            {
+                switch (boundary)
+                {
+                    case 0:
+                        result.AppendLine("Topmost row");
+                        break;
+                    case 1:
+                        result.AppendLine("Rightmost column");
+                        break;
+                    case 2:
+                        result.AppendLine("Bottommost row");
+                        break;
+                    case 3:
+                        result.AppendLine("Leftmost column");
+                        break;
+                    default:
+                        break;
+                }
+                for (int y = 0; y < sizeY; y++)
+                {
+                    for (int x = 0; x < sizeX; x++)
+                    {
+                        int index = y * sizeX + x;
+                        result.Append(((boundaries[boundary] >> index) & 1UL) == 1 ? "1 " : "- ");
+                    }
+                    result.AppendLine();
+                }
+                result.AppendLine();
+            }
+            return result.ToString();
+        }
+
+        public Dictionary<int, List<Direction>> Solutions()
+        {
+            var visited = new HashSet<int>();
+            var queue = new Queue<(int state, List<Direction> path)>();
+            Dictionary<int, List<Direction>> solutions = new Dictionary<int, List<Direction>>();
+
+            // Get initial state and add to structures
+            int initialState = GetState();
+            PrintStateSplit();
+            queue.Enqueue((initialState, new List<Direction>()));
+            visited.Add(initialState);
+            solutions[initialState] = new List<Direction>();
+
+            while (queue.Count > 0)
+            {
+                var (currentState, currentPath) = queue.Dequeue();
+
+                // Set the board to current state once before trying directions
+                SetState(currentState);
+
+                foreach (Direction direction in Enum.GetValues(typeof(Direction)))
+                {
+                    int newState = GetNewState(direction);
+                    PrintStateSplit();
+
+                    if (!visited.Contains(newState))
+                    {
+                        var newPath = new List<Direction>(currentPath) { direction };
+                        visited.Add(newState);
+                        solutions[newState] = newPath;
+                        queue.Enqueue((newState, newPath));
+                    }
+
+                    // Reset to current state before trying next direction
+                    SetState(currentState);
+                }
+            }
+            return solutions;
+        }
+
+        public void PrintSolution(KeyValuePair<int, List<Direction>> solution, int startState)
+        {
+            Bitboard bitboard = new Bitboard(1UL, 6);
+
+            foreach(var x in solution.Value)
+            {
+                bitboard.GetNewState(x);
+                Console.Clear();
+                Console.WriteLine(x);
+                bitboard.PrintBitboard();
+                Thread.Sleep(1000);
+            }
+            
+            //foreach()
         }
     }
 }
