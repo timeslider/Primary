@@ -1159,8 +1159,11 @@ namespace Primary_Puzzle_Solver
             {
                 reader.BaseStream.Seek(index * sizeof(ulong), SeekOrigin.Begin);
                 ulong value = reader.ReadUInt64();
+                (int width, int height) dimensions = GetSize(value);
                 Console.WriteLine("Original");
-                PrintBitboard(value, 8, 8);
+                PrintBitboard(value, dimensions.width, dimensions.height);
+                Console.WriteLine("Inverted");
+                PrintBitboard(~value, dimensions.width, dimensions.height);
             });
         }
 

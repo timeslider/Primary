@@ -1,4 +1,4 @@
-﻿using System.Buffers.Text;
+using System.Buffers.Text;
 using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
