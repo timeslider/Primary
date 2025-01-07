@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
@@ -622,7 +623,6 @@ namespace Primary_Puzzle_Solver
 
             // Get initial state and add to structures
             int initialState = GetState();
-            PrintStateSplit();
             queue.Enqueue((initialState, new List<Direction>()));
             visited.Add(initialState);
             solutions[initialState] = new List<Direction>();
@@ -637,7 +637,6 @@ namespace Primary_Puzzle_Solver
                 foreach (Direction direction in Enum.GetValues(typeof(Direction)))
                 {
                     int newState = MoveToNewState(direction);
-                    PrintStateSplit();
 
                     if (!visited.Contains(newState))
                     {
@@ -656,7 +655,7 @@ namespace Primary_Puzzle_Solver
 
         public void PrintSolution(KeyValuePair<int, List<Direction>> solution, int startState, Bitboard bitboard)
         {
-            int sleepTime = 1500;
+            int sleepTime = 750;
             Console.Clear();
             Console.WriteLine("Initial state");
             bitboard.PrintBitboard();
