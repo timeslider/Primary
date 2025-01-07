@@ -10,7 +10,7 @@ using System.Runtime.Intrinsics.X86;
 using System.Text;
 using System.Threading.Tasks;
 
-[assembly: InternalsVisibleTo("UtilTests")]
+[assembly: InternalsVisibleTo("PrimaryUnitTests")]
 
 namespace Primary_Puzzle_Solver
 {
@@ -20,19 +20,28 @@ namespace Primary_Puzzle_Solver
     internal static class Util
     {
 
-        // Sets a new bit in a bitboard
-        public static ulong SetBitboardCell(ulong bitBoard, int x, int y, bool value)
+        /// <summary>
+        /// Sets a bit in a bitboard either on or off
+        /// </summary>
+        /// <param name="bitBoard">The original bitboard</param>
+        /// <param name="col">The col to be set</param>
+        /// <param name="row">The row to be set</param>
+        /// <param name="value">The value to be set in (col, row)</param>
+        /// <param name="width">The width of the bitboard</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        public static ulong SetBitboardCell(ulong bitBoard, int col, int row, bool value, int width)
         {
-            if (x < 0 || y < 0)
+            if (col < 0 || row < 0)
             {
-                throw new ArgumentOutOfRangeException("The x or y was too small");
+                throw new ArgumentOutOfRangeException("The col or row was too small");
             }
-            if (x > 7 || y > 7)
+            if (col >= width || row >= width)
             {
-                throw new ArgumentOutOfRangeException("The x or y was too large");
+                throw new ArgumentOutOfRangeException("The col or row was too large");
             }
 
-            int bitPosition = y * 8 + x;
+            int bitPosition = row * width + col;
 
             if (value == true)
             {
@@ -48,13 +57,13 @@ namespace Primary_Puzzle_Solver
         /// Gets the value of the bool at position x, y
         /// </summary>
         /// <param name="bitBoard">The bitboard to query.</param>
-        /// <param name="x">The 0-indexed column value.</param>
-        /// <param name="y">The 0-indexed row value.</param>
+        /// <param name="col">The 0-indexed column value.</param>
+        /// <param name="row">The 0-indexed row value.</param>
         /// <returns></returns>
-        public static bool GetBitboardCell(ulong bitBoard, int x, int y)
+        public static bool GetBitboardCell(ulong bitBoard, int col, int row, int width)
         {
 
-            int bitPosition = x * 8 + y;
+            int bitPosition = row * width + col;
             return (bitBoard & (1UL << bitPosition)) != 0;
         }
 
@@ -70,20 +79,20 @@ namespace Primary_Puzzle_Solver
             return (bitboard & (1UL << index)) != 0;
         }
 
-        public static void PrintBitboard(ulong bitBoard, int size = 8, bool invert = false)
+        public static void PrintBitboard(ulong bitBoard, int width, int height, bool invert = false)
         {
             StringBuilder sb = new StringBuilder();
 
             // Prints the puzzle ID so we always know which puzzle we are displaying
             sb.Append(bitBoard + "\n");
 
-            for (int row = 0; row < size; row++)
+            for (int row = 0; row < height; row++)
             {
-                for (int col = 0; col < size; col++)
+                for (int col = 0; col < width; col++)
                 {
                     if (invert == true)
                     {
-                        if (GetBitboardCell(bitBoard, row, col) == true)
+                        if (GetBitboardCell(bitBoard, col, row, width) == true)
                         {
                             sb.Append("- ");
                         }
@@ -94,7 +103,7 @@ namespace Primary_Puzzle_Solver
                     }
                     else
                     {
-                        if (GetBitboardCell(bitBoard, row, col) == true)
+                        if (GetBitboardCell(bitBoard, col, row, width) == true)
                         {
                             sb.Append("1 ");
                         }
@@ -156,6 +165,29 @@ namespace Primary_Puzzle_Solver
             return bitBoard;
         }
 
+
+        // The goal of the follows is to clean up the row_x_xxx stuff below. Good luck
+        public static ulong CreateRowMask(int row, int width)
+        {
+            ulong rowMask = 0;
+            for (int col = 0; col < width; col++)
+            {
+                rowMask |= 1UL << ((row * width) + col);
+            }
+
+            return rowMask;
+        }
+
+        public static ulong CreateColMask(int col, int width)
+        {
+            ulong colMask = 0;
+            for (int row = 0; row < width; row++)
+            {
+                colMask |= 1UL << ((row * width) + col);
+            }
+
+            return colMask;
+        }
 
 
 
@@ -691,13 +723,13 @@ namespace Primary_Puzzle_Solver
             Console.WriteLine(sw.Elapsed);
         }
 
-        public static ulong ConvertPatternToBitboard(string pattern)
+        public static ulong ConvertPatternToBitboard(string pattern, int width)
         {
             var bitboard = 0UL;
-            var position = (x: 0, y: 0);
+            var position = (col: 0, row: 0);
 
             // Set initial position
-            bitboard = SetBitboardCell(bitboard, position.x, position.y, true);
+            bitboard = SetBitboardCell(bitboard, position.col, position.row, true, width);
 
             for (int i = 0; i < pattern.Length; i++)
             {
@@ -706,7 +738,7 @@ namespace Primary_Puzzle_Solver
                 // Set bit if it's the last character or different from next character
                 if (i == pattern.Length - 1 || pattern[i] != pattern[i + 1])
                 {
-                    bitboard = SetBitboardCell(bitboard, position.x, position.y, true);
+                    bitboard = SetBitboardCell(bitboard, position.col, position.row, true, width);
                 }
             }
 
@@ -753,13 +785,13 @@ namespace Primary_Puzzle_Solver
             return result;
         }
 
-        public static HashSet<ulong> ReduceToCanonical(HashSet<string> set, bool verboseLogging = false)
+        public static HashSet<ulong> ReduceToCanonical(HashSet<string> set, int width, bool verboseLogging = false)
         {
             HashSet<ulong> result = new HashSet<ulong>();
 
             foreach (string a in set)
             {
-                result.Add(CanonicalizeBitboard(ConvertPatternToBitboard(a)));
+                result.Add(CanonicalizeBitboard(ConvertPatternToBitboard(a, width)));
 
             }
 
@@ -856,7 +888,7 @@ namespace Primary_Puzzle_Solver
             for (ulong i = 1; i < Math.Pow(2, BitOperations.PopCount(mask)); i++)
             {
                 temp = Bmi2.X64.ParallelBitDeposit(i, mask) | vertex;
-                if(visited.Contains(temp) == false)
+                if (visited.Contains(temp) == false)
                 {
                     permutations.Add(temp);
                 }
@@ -867,7 +899,7 @@ namespace Primary_Puzzle_Solver
 
 
         // These are used to mask out the GetPermutations method
-        private static ulong[] boardMask = new ulong[8] { 0x1, 0x303, 0x70707, 0xf0f0f0f, 0x1f1f1f1f1f, 0x3f3f3f3f3f3f, 0x7f7f7f7f7f7f7f, 0xffffffffffffffff};
+        private static ulong[] boardMask = new ulong[8] { 0x1, 0x303, 0x70707, 0xf0f0f0f, 0x1f1f1f1f1f, 0x3f3f3f3f3f3f, 0x7f7f7f7f7f7f7f, 0xffffffffffffffff };
 
         /// <summary>
         /// Given a bitboard, returns a mask of the where the rows and columns intersect
@@ -955,18 +987,13 @@ namespace Primary_Puzzle_Solver
             return (mask ^ bitboard) & boardMask[size];
         }
 
-        public static (int, int) GetSize(ulong bitboard)
-        {
-            throw new NotImplementedException();
-        }
-
 
 
 
 
         // These methods are for saving and loading files
-        
-        
+
+
         /// <summary>
         /// 
         /// </summary>
@@ -993,7 +1020,7 @@ namespace Primary_Puzzle_Solver
         /// <param name="processAction"></param>
         static void ProcessBinaryFileWrite(string filePath, Action<BinaryWriter> processAction)
         {
-            using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Write))
+            using (FileStream fileStream = new FileStream(filePath, FileMode.OpenOrCreate, FileAccess.Write))
             {
                 using (BinaryWriter binaryWriter = new BinaryWriter(fileStream))
                 {
@@ -1001,7 +1028,68 @@ namespace Primary_Puzzle_Solver
                 }
             }
         }
-        
+
+
+
+
+        /// <summary>
+        /// Takes an 8x8 bitboard with a polyomino and finds the smallest width and height surrounding it
+        /// </summary>
+        /// <param name="bitboard"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public static (int Width, int Height) GetSize(ulong bitboard)
+        {
+            (int Width, int Height) dimensions = (0, 0);
+            // Get the width
+            for(int i = 0; i < 8; i++)
+            {
+                if((~bitboard & CreateColMask(i, 8)) == 0)
+                {
+                    //Console.WriteLine($"Width is {i}");
+                    dimensions.Width = i;
+                    break;
+                }
+            }
+
+            // Get the height
+            for(int i = 0; i < 8; i++)
+            {
+                if((~bitboard & CreateRowMask(i, 8)) == 0)
+                {
+                    //Console.WriteLine($"Height is {i}");
+                    dimensions.Height = i;
+                    break;
+                }
+            }
+
+            return dimensions;
+        }
+
+        /// <summary>
+        /// Converts a bitboard of size 8 by 8 to a bitboard of size n by m.
+        /// It does this by finding the dimensions using GetSize().
+        /// And then shifting the 
+        /// 
+        /// </summary>
+        public static ulong Convert8x8ToNxM(ulong bitboard)
+        {
+            int width = GetSize(bitboard).Width;
+            int height = GetSize(bitboard).Height;
+
+            bitboard = ~bitboard;
+            ulong result = 0UL;
+            
+            for(int i = 0; i < height; i++)
+            {
+                // Get the current row's bits
+                ulong rowBits = (bitboard >> (i * (8 - width))) & CreateRowMask(i, width);
+
+                result |= rowBits;
+            }
+
+            return ~result;
+        }
 
 
 
@@ -1013,6 +1101,9 @@ namespace Primary_Puzzle_Solver
         public static void SeparatePuzzlesBySize(string filePath, bool verboseLogging = false)
         {
 
+            Dictionary<(int x, int), ulong> keyValuePairs = new Dictionary<(int a, int), ulong>();
+
+            
         }
 
 
@@ -1050,9 +1141,42 @@ namespace Primary_Puzzle_Solver
             {
                 reader.BaseStream.Seek(index * sizeof(ulong), SeekOrigin.Begin);
                 ulong value = reader.ReadUInt64();
-                PrintBitboard(value);
-                //Bitboard bitboard = new Bitboard(value, 6);
-                //bitboard.PrintBitboard(true);
+                (int width, int height) dimensions = GetSize(value);
+                Console.WriteLine("Original");
+                PrintBitboard(value, dimensions.width, dimensions.height);
+                Console.WriteLine("Inverted");
+                PrintBitboard(~value, dimensions.width, dimensions.height);
+            });
+        }
+
+
+
+
+        public static void InvertFile(string filePath)
+        {
+            List<ulong> bitboards = new List<ulong>();
+            ProcessBinaryFileRead(filePath, reader =>
+            {
+                if (reader.BaseStream.Length % 8 != 0)
+                {
+                    throw new ArgumentException($"File length {reader.BaseStream.Length} is not a multiple of 8 bytes");
+                }
+
+                while (reader.BaseStream.Position < reader.BaseStream.Length)
+                {
+                    bitboards.Add(~reader.ReadUInt64());
+                }
+
+            });
+
+            bitboards.Sort();
+
+            ProcessBinaryFileWrite(@"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted 8 by 8 inverted.bin", writer =>
+            {
+                foreach (ulong bitboard in bitboards)
+                {
+                    writer.Write(bitboard);
+                }
             });
         }
 
