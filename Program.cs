@@ -2,33 +2,39 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using static Primary_Puzzle_Solver.Util;
 
+// @"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted 8 by 8.bin"
+// @"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted.bin"
 namespace Primary_Puzzle_Solver
 {
     class Program
     {
         public static void Main()
         {
-            // Set up initial board with fixed walls
-            Bitboard bitboard = new Bitboard(1UL, 6);
+            string filePath = @"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted 8 by 8.bin";
+            //Bitboard bitboard = new Bitboard(1, 2);
+            //bitboard.PrintBitboard();
 
-            int startState = bitboard.State;
+            ////bitboard.SetState(4487);
+            ////bitboard.PrintBitboard();
 
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
+            ////bitboard.MoveToNewState(Bitboard.Direction.Down);
+            ////bitboard.PrintBitboard();
 
-            var solutions = bitboard.Solutions().ToList();
+            //var x = bitboard.Solutions().ToList();
 
+            //bitboard.PrintSolution(x[^1], x[0].Key, new Bitboard(1, 3));
 
-            Console.WriteLine(stopwatch.Elapsed.Milliseconds);
+            for (int i = 0; i < 100; i++)
+            {
+                try
+                {
+                    PrintBitboardFromFile(filePath, i);
+                }
+                catch { }
+            }
 
-            bitboard.PrintSolution(solutions[3575], startState);
-
-            //foreach(var solution in solutions)
-            //{
-            //    bitboard.SetState(solution.Key & 0x3f, (solution.Key >> 6) & 0x3f, (solution.Key >> 12) & 0x3f);
-            //    bitboard.PrintBitboard();
-            //}
         }
     }
 }

@@ -10,7 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 
-[assembly: InternalsVisibleTo("UtilTests")]
+[assembly: InternalsVisibleTo("PrimaryUnitTests")]
 
 namespace Primary_Puzzle_Solver
 {
@@ -80,6 +80,12 @@ namespace Primary_Puzzle_Solver
             }
         }
 
+        /// <summary>
+        /// Get bitboard cell by (x, y) pair
+        /// </summary>
+        /// <param name="x">Col index</param>
+        /// <param name="y">Row index</param>
+        /// <returns>A bool</returns>
         public bool GetBitboardCell(int x, int y)
         {
             CheckBounds(x, y);
@@ -87,9 +93,17 @@ namespace Primary_Puzzle_Solver
             return (bitboardValue & (1UL << bitPosition)) != 0;
         }
 
-        // Needs testing
+        /// <summary>
+        /// Gets bitboard cell by index.
+        /// Index starts at 0 in the top left corner and works its way left to right, top to bottom and ends at (sizeX * sizeY) - 1 in the bottom right.
+        /// </summary>
+        /// <param name="index">The index of the cell you're querring.</param>
+        /// <returns>A bool</returns>
+        /// <exception cref="ArgumentOutOfRangeException">If index is less than 0 or greater than (sizeX * sizeY) - 1</exception>
         public bool GetBitboardCell(int index)
         {
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(index, (sizeX * sizeY) - 1);
             return (bitboardValue & (1UL << index)) != 0;
         }
 
@@ -98,7 +112,7 @@ namespace Primary_Puzzle_Solver
             StringBuilder sb = new StringBuilder();
 
             // Prints the puzzle ID so we always know which puzzle we are displaying
-            sb.Append(bitboardValue + "\n");
+            sb.Append($"Puzzle: {bitboardValue}, state: {State}, sizeX: {sizeX}, sizeY: {sizeY}\n");
 
             for (int row = 0; row < SizeY; row++)
             {
@@ -173,13 +187,45 @@ namespace Primary_Puzzle_Solver
         }
 
 
+        /// <summary>
+        /// For a given board layout, find where the starting tiles will go.
+        /// Scanning left to right, top to bottom find the first empty cell and place a red tile.
+        /// The remaining 2 colors should be attached to the red tile edge wise and their placement should create a minimum.
+        /// </summary>
         public void GetInitialState()
         {
+            if((sizeX * sizeX) - BitOperations.PopCount(bitboardValue) < 3)
+            {
+                throw new ArgumentOutOfRangeException("There needs to be at least 3 empty holes in the bitboard.");
+            }
+            //// Find red's index
+            //int i = 0;
+            //for (int row = 0; row < sizeY;)
+            //{
+            //    for (int col = 0; col < sizeX;)
+            //    {
+            //        if(GetBitboardCell(row, col) == false)
+            //        {
+            //            Console.WriteLine($"Found red's index at {col * sizeY + row}");
+            //            red = col * sizeY + row;
+            //            i++;
+            //            break;
+            //        }
+            //        col++;
+            //    }
+            //    if(i == 1)
+            //    {
+            //        break;
+            //    }
+            //    row++;
+            //}
+
             // Find red's index
             for (int i = 0; i < 64; i++)
             {
                 if (GetBitboardCell(i) == false)
                 {
+                    Console.WriteLine($"Found red's index at {i}");
                     red = i;
                     break;
                 }
@@ -188,45 +234,66 @@ namespace Primary_Puzzle_Solver
             // The following logic can probably be simplifed using a BFS/DFS
 
             List<int> next = new List<int>();
-            // Find the next empty cell that is either to the right or below Red 
-            if (GetBitboardCell(red + 1) == false) // checks right
+            // check if the cell right of Red is empty AND next cell is not on the next row
+            if(GetBitboardCell(red + 1) == false && (red + 1) % (sizeX) != 0)
             {
+                Console.WriteLine("Case 1: Adding something to the right of red.");
                 next.Add(red + 1);
-                if (GetBitboardCell(next[0] + 1) == false) // Checks right again
+                // Check right
+                if (GetBitboardCell(next[0] + 1) == false && (next[0] + 1) % (sizeX) != 0)
                 {
+                    Console.WriteLine($"Case 2: The cell to the right of the 2nd cell was empty and this cell is not currently on the right most edge already.");
                     next.Add(next[0] + 1);
+                }
+                // Check under red
+                else if (GetBitboardCell(red + sizeX) == false)
+                {
+                    Console.WriteLine($"Case 3: Adding something under red.");
+                    next.Add(red + sizeX);
+                }
+                // Check under yellow
+                else if (GetBitboardCell(next[0] + sizeX) == false)
+                {
+                    Console.WriteLine($"Case 4: Adding something under yellow.");
+                    next.Add(next[0] + sizeX);
                 }
                 else
                 {
-                    if (GetBitboardCell(red + sizeX) == false) // Try going back to red and looking under it first
-                    {
-                        next.Add(red + sizeX);
-                    }
-                    else
-                    {
-                        next.Add(next[0] + sizeX); // Add down
-                    }
+                    Console.WriteLine($"Case 5: There wasn't enough empty cells to fit all the colored tiles.");
+                    throw new Exception($"Case 5: There wasn't enough empty cells to fit all the colored tiles.");
                 }
             }
             else
             {
-                next.Add(red + sizeX); // Adds down
-                // Check Left
-                if (GetBitboardCell(next[0] - 1) == false)
+                // The cell right of red wasn't empty OR red it touching the right most edge.
+                Console.WriteLine($"Case 6: Adding something under red.");
+                next.Add(red + sizeX);
+                // The cell left to the previous is empty AND the previous cell wasn't already on the left most edge.
+                // And the left cell isn't red.
+                if (GetBitboardCell(next[0] - 1) == false && (next[0] - 1) % (sizeX - 1) != 0 && (next[0] - 1) != red)
                 {
+                    Console.WriteLine($"Case 7: The cell to the left of the 2nd cell was not a wall, this cell was not on the left most edge, and the left most cell was not red.");
                     next.Add(next[0] - 1);
                 }
                 // Check right
-                else if (GetBitboardCell(next[0] + 1) == false)
+                else if (GetBitboardCell(next[0] + 1) == false && (next[0] + 1) % (sizeX) != 0)
                 {
+                    Console.WriteLine($"Case 8: The cell to the right of the 2nd cell was empty and this cell is not currently on the right most edge already.");
                     next.Add(next[0] + 1);
                 }
-                // Add down
-                else
+                // Check down
+                else if (GetBitboardCell(next[0] + sizeX) == false)
                 {
+                    Console.WriteLine($"Case 9: There's nothing below, so add below.");
                     next.Add(next[0] + sizeX);
                 }
+                else
+                {
+                    Console.WriteLine($"Case 10: There wasn't enough empty cells to fit all the colored tiles.");
+                    throw new Exception("Case 10: There wasn't enough empty cells to fit all the colored tiles.");
+                }
             }
+
 
             yellow = Math.Min(next[0], next[1]);
             blue = Math.Max(next[0], next[1]);
@@ -283,6 +350,9 @@ namespace Primary_Puzzle_Solver
 
         public int GetState()
         {
+            var x = red;
+            var y = yellow;
+            var z = blue;
             return red | (yellow << 6) | (blue << 12);
         }
 
@@ -297,14 +367,13 @@ namespace Primary_Puzzle_Solver
             this.red = red;
             this.yellow = yellow;
             this.blue = blue;
-            //state = red | (yellow << 6) | (blue << 12);
         }
 
         public void SetState(int existingState)
         {
-            this.red = existingState & 0x3f;
-            this.yellow = (existingState >> 6) & 0x3f;
-            this.red = (existingState >> 12) & 0x3f;
+            red = existingState & 0x3f;
+            yellow = (existingState >> 6) & 0x3f;
+            blue = (existingState >> 12) & 0x3f;
         }
 
         public enum Direction
@@ -315,7 +384,7 @@ namespace Primary_Puzzle_Solver
             Right,
         }
 
-        public int GetNewState(Direction direction)
+        public int MoveToNewState(Direction direction)
         {
 
             // Colors
@@ -341,11 +410,13 @@ namespace Primary_Puzzle_Solver
                 case Direction.Right:
                     boundary = boundaries[1];
                     moveDistance = -1;
+                    colors.Sort();
                     colors.Reverse();
                     break;
                 case Direction.Down:
                     boundary = boundaries[2];
                     moveDistance = -sizeX;
+                    colors.Sort();
                     colors.Reverse();
                     break;
                 case Direction.Left:
@@ -394,8 +465,6 @@ namespace Primary_Puzzle_Solver
                     case 'b':
                         blue = BitboardToIndex(colors[i].bitboard);
                         //Console.WriteLine($"{colors[i].name} is at {colors[i].bitboard}");
-                        break;
-                    default:
                         break;
                 }
             }
@@ -567,7 +636,7 @@ namespace Primary_Puzzle_Solver
 
                 foreach (Direction direction in Enum.GetValues(typeof(Direction)))
                 {
-                    int newState = GetNewState(direction);
+                    int newState = MoveToNewState(direction);
                     PrintStateSplit();
 
                     if (!visited.Contains(newState))
@@ -585,20 +654,22 @@ namespace Primary_Puzzle_Solver
             return solutions;
         }
 
-        public void PrintSolution(KeyValuePair<int, List<Direction>> solution, int startState)
+        public void PrintSolution(KeyValuePair<int, List<Direction>> solution, int startState, Bitboard bitboard)
         {
-            Bitboard bitboard = new Bitboard(1UL, 6);
+            int sleepTime = 1500;
+            Console.Clear();
+            Console.WriteLine("Initial state");
+            bitboard.PrintBitboard();
+            Thread.Sleep(sleepTime);
 
             foreach(var x in solution.Value)
             {
-                bitboard.GetNewState(x);
+                bitboard.MoveToNewState(x);
                 Console.Clear();
                 Console.WriteLine(x);
                 bitboard.PrintBitboard();
-                Thread.Sleep(1000);
+                Thread.Sleep(sleepTime);
             }
-            
-            //foreach()
         }
     }
 }

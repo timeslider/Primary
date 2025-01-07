@@ -14,6 +14,9 @@ using System.Threading.Tasks;
 
 namespace Primary_Puzzle_Solver
 {
+    /// <summary>
+    /// This class assumes every bitboard is 8 by 8. I want to convert it was they x and y can by anything between 0 and 7.
+    /// </summary>
     internal static class Util
     {
 
@@ -29,7 +32,7 @@ namespace Primary_Puzzle_Solver
                 throw new ArgumentOutOfRangeException("The x or y was too large");
             }
 
-            int bitPosition = y * 8 + x;  // The math stays the same, just parameter names change
+            int bitPosition = y * 8 + x;
 
             if (value == true)
             {
@@ -722,23 +725,6 @@ namespace Primary_Puzzle_Solver
             };
         }
 
-        public static void SavePuzzlesToBinaryFile(List<ulong> puzzles, string filePath)
-        {
-            if (filePath.EndsWith(".bin") == false)
-            {
-                filePath += ".bin";
-            }
-            using (FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
-            {
-                byte[] sbytes = new byte[8];
-                foreach (ulong puzzle in puzzles)
-                {
-                    sbytes = BitConverter.GetBytes(puzzle);
-                    fs.Write(sbytes, 0, sbytes.Length);
-                }
-            }
-        }
-
 
         /// <summary>
         /// If you don't include .bin, it'll add it automatically.
@@ -969,35 +955,167 @@ namespace Primary_Puzzle_Solver
             return (mask ^ bitboard) & boardMask[size];
         }
 
-        //public static ulong GetNext(ulong bitboard, ulong mask)
-        //{
-        //    Bmi2.
-        //    ulong t = bitboard | (bitboard - 1);
-        //    return (t + 1) | ((~(long)t & -~(long)t) - 1) >> (BSF(bitboard) + 1);
-        //}
-        #region Next lexigraphical bit
-        //        int i = 15;
-        //        int count = 10;
-        //        count += i;
-        //            int v = 15;
-        //        int w = 15;
-        //        int t = 0;
-        //            while(true)
-        //            {
-        //                t = (v | (v - 1)) + 1;
-        //                w = t | ((((t & -t) / (v & -v)) >> 1) - 1);
-        //                Console.WriteLine(Convert.ToString(w, 2).PadLeft(32, '0') + "  <--");
-        //                v = w;
-        //                i++;
-        //            }
+        public static (int, int) GetSize(ulong bitboard)
+        {
+            throw new NotImplementedException();
+        }
 
 
-        //}
 
-        //public int BSF(int x)
-        //{
-        //    return 0;
-        //}
-        #endregion
+
+
+        // These methods are for saving and loading files
+        
+        
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <param name="processAction"></param>
+        static void ProcessBinaryFileRead(string filePath, Action<BinaryReader> processAction)
+        {
+            using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+            {
+                using (BinaryReader binaryReader = new BinaryReader(fileStream))
+                {
+                    processAction(binaryReader);
+                }
+            }
+        }
+
+
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <param name="processAction"></param>
+        static void ProcessBinaryFileWrite(string filePath, Action<BinaryWriter> processAction)
+        {
+            using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Write))
+            {
+                using (BinaryWriter binaryWriter = new BinaryWriter(fileStream))
+                {
+                    processAction(binaryWriter);
+                }
+            }
+        }
+        
+
+
+
+
+        /// <summary>
+        /// Goes through each bitboard and determines it's sizeX and sizeY and then saves them all to file
+        /// </summary>
+        /// <param name="filePath"></param>
+        public static void SeparatePuzzlesBySize(string filePath, bool verboseLogging = false)
+        {
+
+        }
+
+
+
+        /// <summary>
+        /// Assumes each puzzle is 8 by 8
+        /// </summary>
+        /// <param name="puzzles"></param>
+        /// <param name="filePath"></param>
+        public static void SavePuzzlesToBinaryFile(List<ulong> puzzles, string filePath)
+        {
+            if (filePath.EndsWith(".bin") == false)
+            {
+                filePath += ".bin";
+            }
+
+            ProcessBinaryFileWrite(filePath, writer =>
+            {
+                byte[] sbytes = new byte[8];
+                foreach (ulong puzzle in puzzles)
+                {
+                    sbytes = BitConverter.GetBytes(puzzle);
+                    writer.Write(sbytes, 0, sbytes.Length);
+                }
+            });
+        }
+
+
+
+
+
+        public static void PrintBitboardFromFile(string filePath, int index)
+        {
+            ProcessBinaryFileRead(filePath, reader =>
+            {
+                reader.BaseStream.Seek(index * sizeof(ulong), SeekOrigin.Begin);
+                ulong value = reader.ReadUInt64();
+                PrintBitboard(value);
+                //Bitboard bitboard = new Bitboard(value, 6);
+                //bitboard.PrintBitboard(true);
+            });
+        }
+
+
+
+
+
+        /// <summary>
+        /// Prints all the puzzles from filePath starting from startIndex and going for range.
+        /// If fromStart is set to false, it will loop over the range backwards.
+        /// If it range is too large, it will end without error.
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <param name="startIndex"></param>
+        /// <param name="range"></param>
+        /// <param name="fromStart"></param>
+        public static void PrintBitboardRange(string filePath, int startIndex, int range, bool fromStart = true)
+        {
+            //Puzzle puzzle = new Puzzle();
+
+            ProcessBinaryFileRead(filePath, reader =>
+            {
+                if (fromStart == true)
+                {
+                    reader.BaseStream.Seek(startIndex * sizeof(ulong), SeekOrigin.Begin);
+                }
+                else
+                {
+                    reader.BaseStream.Seek(-range * sizeof(ulong), SeekOrigin.End);
+                }
+                for (long i = 0; i < range; i++)
+                {
+                    if (reader.BaseStream.Position == reader.BaseStream.Length)
+                    {
+                        break; // End of file reached
+                    }
+                    ulong value = reader.ReadUInt64();
+                }
+            });
+        }
+
+
+
+
+
+        /// <summary>
+        /// Determines how many 64-bit integers are present in the given file.
+        /// </summary>
+        public static int CountPuzzlesInFile(string filePath)
+        {
+            int puzzleCount = 0;
+            ProcessBinaryFileRead(filePath, reader =>
+            {
+                // Ensure the file length is a multiple of 8
+                if (reader.BaseStream.Length % 8 != 0)
+                {
+                    throw new InvalidOperationException("File size is not a multiple of 8 bytes.");
+                }
+
+                // Calculate and return the number of 64-bit integers
+                puzzleCount = (int)(reader.BaseStream.Length / 8);
+            });
+            return puzzleCount;
+        }
     }
 }
