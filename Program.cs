@@ -14,29 +14,44 @@ namespace Primary_Puzzle_Solver
     {
         public static void Main()
         {
-            string filePath = @"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted 8 by 8.bin";
-            int offset = 0;
-            HashSet<(int, int)> dimensions = new HashSet<(int, int)>();
-            for (int i = offset; i < offset + 1000; i++)
-            {
-                Console.WriteLine($"i: {i}");
-                //PrintBitboardFromFile(filePath, i);
-                dimensions.Add(ProcessBitboardFromFile(filePath, i));
-            }
+            //string filePath = @"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted 8 by 8.bin";
+            //int offset = 0;
+            //HashSet<(int, int)> dimensions = new HashSet<(int, int)>();
+            //for (int i = offset; i < offset + 1000; i++)
+            //{
+            //    Console.WriteLine($"i: {i}");
+            //    //PrintBitboardFromFile(filePath, i);
+            //    dimensions.Add(ProcessBitboardFromFile(filePath, i));
+            //}
 
-            Bitboard bitboard = new Bitboard(~6765632493369UL, 8);
-            var solutions = bitboard.Solutions().ToList();
-            foreach (var solution in solutions)
-            {
-                foreach(var directionList in solution.Value)
-                {
-                    Console.Write(directionList.ToString() + " ");
-                }
-                Console.WriteLine();
-            }
+            //Bitboard bitboard = new Bitboard(~6765632493369UL, 8);
+            //var solutions = bitboard.Solutions().ToList();
+            //HashSet<int> states = new HashSet<int>();
+
+            //foreach (var solution in solutions)
+            //{
+            //    states.Add(solution.Key);
+            //    foreach(var directionList in solution.Value)
+            //    {
+
+            //        Console.Write(directionList.ToString() + " ");
+            //    }
+            //    Console.WriteLine();
+            //}
+
             //bitboard.PrintSolution(solutions[^1], solutions[0].Key, new Bitboard(~6765632493369UL, 8));
+            //states.ToList().Sort();
+            //foreach(var state in states)
+            //{
+            //    Console.WriteLine(state);
+            //}
+            //Console.WriteLine();
 
-            Console.WriteLine();
+
+
+            Bitboard bitboard = new Bitboard(0UL, 1);
+
+            Console.WriteLine(  );
 
             //ulong value = 7479;
             //(int width, int height) dimensions = GetSize(~value);

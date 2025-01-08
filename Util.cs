@@ -1282,5 +1282,25 @@ namespace Primary_Puzzle_Solver
             });
             return puzzleCount;
         }
+
+
+
+
+        /// <summary>
+        /// Accepts a bitboard with a single bit and returns its index
+        /// </summary>
+        /// <param name="bitboard"></param>
+        public static int BitboardToIndex(ulong bitboard, int width, int height)
+        {
+            if (BitOperations.PopCount(bitboard) != 1)
+            {
+                throw new ArgumentOutOfRangeException("Bitboard must contain exact 1 bit.");
+            }
+            // Convert single bit back into an index
+            int bitPosition = BitOperations.TrailingZeroCount(bitboard);
+            int row = bitPosition / width;
+            int col = bitPosition % width;
+            return row * width + col;
+        }
     }
 }

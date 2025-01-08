@@ -1,18 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Drawing;
-using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.X86;
 using System.Text;
-using System.Threading.Tasks;
+using static Primary_Puzzle_Solver.Util;
 
 
 [assembly: InternalsVisibleTo("PrimaryUnitTests")]
-
 namespace Primary_Puzzle_Solver
 {
     /// <summary>
@@ -20,117 +13,172 @@ namespace Primary_Puzzle_Solver
     /// </summary>
     internal class Bitboard
     {
+        private ulong wallData;
+        public ulong WallData { get { return wallData; } }
 
-        private ulong bitboardValue;
-        public ulong BitboardValue { get { return bitboardValue; } }
 
-        private readonly int sizeX;
-        public int SizeX { get { return sizeX; } }
+        private readonly int width;
+        public int Width { get { return width; } }
 
-        private readonly int sizeY;
-        public int SizeY { get { return sizeY; } }
+
+        private readonly int height;
+        public int Height { get { return height; } }
+
 
         private bool isSquare = false;
 
+
+        // These represent the state
+        // They represent where a colored tile is
+        // They are 0-indexed and start at the top left and go left to right, top to bottom ending at the bottom right corner
+        // They're eventually packed into 18-bit State variable where the first 6 bits are the red tile, the next 6 are yellow and so on 
         private int red = 0;
         private int yellow = 0;
         private int blue = 0;
-        //private int state = 0;
+
+
+        // A merge of the colored tiles.
+        // Defined by: state = red | (yellow << 6) | (blue << 12)
         public int State { get { return GetState(); } }
+        
+
+        // The boundaries of the edges. Used to determine if crossing the x axis
+        // Since a lot of indices goes from 0 to n -1 within an x, y plane we need a way to know when we have moved to another row
         private List<ulong> boundaries = new();
 
 
-        public Bitboard(ulong bitboard, int sizeX)
-            : this(bitboard, sizeX, sizeX)
-        { }
+
 
         /// <summary>
-        /// 
+        /// Used when the bitboard is square
         /// </summary>
         /// <param name="bitboard"></param>
-        /// <param name="size"></param>
-        /// <exception cref="ArgumentOutOfRangeException">size must be greater than zero and less than 9</exception>
-        public Bitboard(ulong bitboard, int sizeX, int sizeY)
-        {
-            CheckBounds(bitboard, sizeX, sizeY);
+        /// <param name="width"></param>
+        public Bitboard(ulong bitboard, int width)
+            : this(bitboard, width, width)
+        { }
 
-            this.bitboardValue = bitboard;
-            this.sizeX = sizeX;
-            this.sizeY = sizeY;
-            if (this.SizeX == this.SizeY)
+
+
+
+        /// <summary>
+        /// Used when the bitboard is not square
+        /// </summary>
+        /// <param name="bitboard">The wall data</param>
+        /// <param name="width">The width of the bitboard</param>
+        /// <param name="height">The height of the bitboard</param>
+        /// <exception cref="ArgumentOutOfRangeException">width and height must be greater than 0 and less than 9</exception>
+        public Bitboard(ulong bitboard, int width, int height)
+        {
+            // Ensures the bitboard isn't too small or too large
+            CheckBounds(width, height, false);
+
+            this.wallData = bitboard;
+            this.width = width;
+            this.height = height;
+            if (this.width == this.height)
             {
                 this.isSquare = true;
             }
+
+            // The inital state is always in the upper left corner
             GetInitialState();
+            
+            // Generates the boundaries since it varies based on the dimensions of the bitboard
             GetBoundaries();
         }
 
 
-        public ulong SetBitboardCell(int x, int y, bool value = true)
-        {
-            CheckBounds(x, y);
-            int bitPosition = y * SizeX + x;
 
+
+        /// <summary>
+        /// Sets a single bit in a bitboard and returns the value
+        /// </summary>
+        /// <param name="col">The col index of the bit that will be set</param>
+        /// <param name="row">The row index of the bit that will be set</param>
+        /// <param name="value">The value to be set. Defaults to true</param>
+        /// <returns></returns>
+        public ulong SetBitboardCell(int col, int row, bool value = true)
+        {
+            // Just in case
+            CheckBounds(col, row);
+
+            int bitPosition = row * width + col;
             if (value == true)
             {
-                return bitboardValue |= (1UL << bitPosition);
+                return wallData |= (1UL << bitPosition);
             }
             else
             {
-                return bitboardValue &= ~(1UL << bitPosition);
+                return wallData &= ~(1UL << bitPosition);
             }
         }
 
+
+
+
         /// <summary>
-        /// Get bitboard cell by (x, y) pair
+        /// Get the value in the bitboard cell by (col, row) pair
         /// </summary>
-        /// <param name="x">Col index</param>
-        /// <param name="y">Row index</param>
+        /// <param name="col">The col index of the bit that will be set</param>
+        /// <param name="row">The row index of the bit that will be set</param>
         /// <returns>A bool</returns>
-        public bool GetBitboardCell(int x, int y)
+        public bool GetBitboardCell(int col, int row)
         {
-            CheckBounds(x, y);
-            int bitPosition = y * SizeX + x;
-            return (bitboardValue & (1UL << bitPosition)) != 0;
+            // Just in case
+            CheckBounds(col, row);
+            
+            int bitPosition = row * width + col;
+            return (wallData & (1UL << bitPosition)) != 0;
         }
+
+
+
 
         /// <summary>
         /// Gets bitboard cell by index.
         /// Index starts at 0 in the top left corner and works its way left to right, top to bottom and ends at (sizeX * sizeY) - 1 in the bottom right.
         /// </summary>
-        /// <param name="index">The index of the cell you're querring.</param>
+        /// <param name="index">The index of the cell you're querring</param>
         /// <returns>A bool</returns>
         /// <exception cref="ArgumentOutOfRangeException">If index is less than 0 or greater than (sizeX * sizeY) - 1</exception>
         public bool GetBitboardCell(int index)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(index);
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(index, (sizeX * sizeY) - 1);
-            return (bitboardValue & (1UL << index)) != 0;
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(index, (width * height) - 1);
+            return (wallData & (1UL << index)) != 0;
         }
 
+
+
+
+        /// <summary>
+        /// Prints the bitboard
+        /// </summary>
+        /// <param name="invert">Inverts the bitboard so 1s get displayed as 0s and visa versa</param>
         public void PrintBitboard(bool invert = false)
         {
             StringBuilder sb = new StringBuilder();
 
-            // Prints the puzzle ID so we always know which puzzle we are displaying
-            sb.Append($"Puzzle: {bitboardValue}, state: {State}, sizeX: {sizeX}, sizeY: {sizeY}\n");
+            // Prints puzzle info so we always know which puzzle we are displaying
+            sb.Append($"Puzzle: {wallData}, state: {State}, sizeX: {width}, sizeY: {height}\n");
 
-            for (int row = 0; row < SizeY; row++)
+            for (int row = 0; row < height; row++)
             {
-                for (int col = 0; col < SizeX; col++)
+                for (int col = 0; col < width; col++)
                 {
-                    if (row * sizeX + col == red)
+                    if (row * width + col == red)
                     {
                         sb.Append("R ");
                         continue;
                     }
-                    if (row * sizeX + col == yellow)
+                    if (row * width + col == yellow)
                     {
                         sb.Append("Y ");
                         continue;
                     }
 
-                    if (row * sizeX + col == blue)
+                    if (row * width + col == blue)
                     {
                         sb.Append("B ");
                         continue;
@@ -152,74 +200,69 @@ namespace Primary_Puzzle_Solver
         }
 
 
-        public void Rotate90CCSquare()
-        {
-            ulong result = 0;
-            for (int i = 0; i < SizeX; i++)
-            {
-                ulong mask = GenerateMask(SizeX, i);
-                result |= Bmi2.X64.ParallelBitExtract(bitboardValue, mask) << (SizeX - 1 - i) * SizeX;
-            }
-            bitboardValue = result;
-        }
 
-        private ulong GenerateMask(int size, int row)
-        {
-            ulong mask = 0;
-            for (int i = 0; i < size; i++)
-            {
-                mask |= 1UL << (i * size + row);
-            }
-            return mask;
-        }
 
-        public void Rotate180()
-        {
-            ulong result = 0;
-            for (int i = 0; i < SizeX * SizeY; i++)
-            {
-                if ((bitboardValue & (1UL << i)) != 0)
-                {
-                    result |= 1UL << (SizeX * SizeY - 1 - i);
-                }
-            }
+        #region Not needed
+        ///// <summary>
+        ///// Rotates a square bitboard 90° counter clockwise
+        ///// </summary>
+        //public void Rotate90CCSquare()
+        //{
+        //    ulong result = 0;
+        //    for (int i = 0; i < width; i++)
+        //    {
+        //        ulong mask = GenerateMask(width, i);
+        //        result |= Bmi2.X64.ParallelBitExtract(wallData, mask) << (width - 1 - i) * width;
+        //    }
+        //    wallData = result;
+        //}
 
-            bitboardValue = result;
-        }
+        //private ulong GenerateMask(int size, int row)
+        //{
+        //    ulong mask = 0;
+        //    for (int i = 0; i < size; i++)
+        //    {
+        //        mask |= 1UL << (i * size + row);
+        //    }
+
+        //    return mask;
+        //}
+
+
+
+
+        ///// <summary>
+        ///// Rotates a bitboard 180° by reversing all the bits
+        ///// </summary>
+        //public void Rotate180()
+        //{
+        //    ulong result = 0;
+        //    for (int i = 0; i < width * height; i++)
+        //    {
+        //        if ((wallData & (1UL << i)) != 0)
+        //        {
+        //            result |= 1UL << (width * height - 1 - i);
+        //        }
+        //    }
+
+        //    wallData = result;
+        //}
+        #endregion
+
+
 
 
         /// <summary>
-        /// For a given board layout, find where the starting tiles will go.
+        /// For a given board layout, finds where the starting tiles will go.
         /// Scanning left to right, top to bottom find the first empty cell and place a red tile.
         /// The remaining 2 colors should be attached to the red tile edge wise and their placement should create a minimum.
         /// </summary>
         public void GetInitialState()
         {
-            if((sizeX * sizeX) - BitOperations.PopCount(bitboardValue) < 3)
+            if((width * height) - BitOperations.PopCount(wallData) < 3)
             {
                 throw new ArgumentOutOfRangeException("There needs to be at least 3 empty holes in the bitboard.");
             }
-            //// Find red's index
-            //int i = 0;
-            //for (int row = 0; row < sizeY;)
-            //{
-            //    for (int col = 0; col < sizeX;)
-            //    {
-            //        if(GetBitboardCell(row, col) == false)
-            //        {
-            //            Console.WriteLine($"Found red's index at {col * sizeY + row}");
-            //            red = col * sizeY + row;
-            //            i++;
-            //            break;
-            //        }
-            //        col++;
-            //    }
-            //    if(i == 1)
-            //    {
-            //        break;
-            //    }
-            //    row++;
-            //}
 
             // Find red's index
             for (int i = 0; i < 64; i++)
@@ -236,27 +279,27 @@ namespace Primary_Puzzle_Solver
 
             List<int> next = new List<int>();
             // check if the cell right of Red is empty AND next cell is not on the next row
-            if(GetBitboardCell(red + 1) == false && (red + 1) % (sizeX) != 0)
+            if(GetBitboardCell(red + 1) == false && (red + 1) % (width) != 0)
             {
                 Console.WriteLine("Case 1: Adding something to the right of red.");
                 next.Add(red + 1);
                 // Check right
-                if (GetBitboardCell(next[0] + 1) == false && (next[0] + 1) % (sizeX) != 0)
+                if (GetBitboardCell(next[0] + 1) == false && (next[0] + 1) % (width) != 0)
                 {
                     Console.WriteLine($"Case 2: The cell to the right of the 2nd cell was empty and this cell is not currently on the right most edge already.");
                     next.Add(next[0] + 1);
                 }
                 // Check under red
-                else if (GetBitboardCell(red + sizeX) == false)
+                else if (GetBitboardCell(red + width) == false)
                 {
                     Console.WriteLine($"Case 3: Adding something under red.");
-                    next.Add(red + sizeX);
+                    next.Add(red + width);
                 }
                 // Check under yellow
-                else if (GetBitboardCell(next[0] + sizeX) == false)
+                else if (GetBitboardCell(next[0] + width) == false)
                 {
                     Console.WriteLine($"Case 4: Adding something under yellow.");
-                    next.Add(next[0] + sizeX);
+                    next.Add(next[0] + width);
                 }
                 else
                 {
@@ -268,25 +311,25 @@ namespace Primary_Puzzle_Solver
             {
                 // The cell right of red wasn't empty OR red it touching the right most edge.
                 Console.WriteLine($"Case 6: Adding something under red.");
-                next.Add(red + sizeX);
+                next.Add(red + width);
                 // The cell left to the previous is empty AND the previous cell wasn't already on the left most edge.
                 // And the left cell isn't red.
-                if (GetBitboardCell(next[0] - 1) == false && (next[0] - 1) % (sizeX - 1) != 0 && (next[0] - 1) != red)
+                if (GetBitboardCell(next[0] - 1) == false && (next[0] - 1) % (width - 1) != 0 && (next[0] - 1) != red)
                 {
                     Console.WriteLine($"Case 7: The cell to the left of the 2nd cell was not a wall, this cell was not on the left most edge, and the left most cell was not red.");
                     next.Add(next[0] - 1);
                 }
                 // Check right
-                else if (GetBitboardCell(next[0] + 1) == false && (next[0] + 1) % (sizeX) != 0)
+                else if (GetBitboardCell(next[0] + 1) == false && (next[0] + 1) % (width) != 0)
                 {
                     Console.WriteLine($"Case 8: The cell to the right of the 2nd cell was empty and this cell is not currently on the right most edge already.");
                     next.Add(next[0] + 1);
                 }
                 // Check down
-                else if (GetBitboardCell(next[0] + sizeX) == false)
+                else if (GetBitboardCell(next[0] + width) == false)
                 {
                     Console.WriteLine($"Case 9: There's nothing below, so add below.");
-                    next.Add(next[0] + sizeX);
+                    next.Add(next[0] + width);
                 }
                 else
                 {
@@ -300,6 +343,12 @@ namespace Primary_Puzzle_Solver
             blue = Math.Max(next[0], next[1]);
         }
 
+
+
+
+        /// <summary>
+        /// Prints the state into the separated colors
+        /// </summary>
         public void PrintStateSplit()
         {
             Console.WriteLine($"Red: {red}");
@@ -307,55 +356,66 @@ namespace Primary_Puzzle_Solver
             Console.WriteLine($"Blue: {blue}");
         }
 
+
+
+
         /// <summary>
-        /// The boundaries are the rows and columns along the edge.
+        /// The boundaries are the rows and columns along the border.
         /// They are used by the move function to help with edge cases.
-        /// The order is up, right, down, and left.
+        /// The order is always up, right, down, and left like a clock.
+        /// The order is IMPORTANT. DO NOT REORDER.
         /// </summary>
         public void GetBoundaries()
         {
             ulong temp = 0UL;
 
-            // Generate the top row: This works
-            for (int i = 0; i < sizeX; i++)
+            // Generate the top row
+            for (int i = 0; i < width; i++)
             {
                 temp |= 1UL << i;
             }
             boundaries.Add(temp);
             temp = 0UL;
 
-            // Generate the right col: Missing one at the bottom
-            for (int i = 0; i < sizeY; i++)
+            // Generate the right col
+            for (int i = 0; i < height; i++)
             {
-                temp |= 1UL << sizeX * (i + 1) - 1;
+                temp |= 1UL << width * (i + 1) - 1;
             }
             boundaries.Add(temp);
             temp = 0UL;
 
             // Generate the bottom row
-            for (int i = 0; i < sizeX; i++)
+            for (int i = 0; i < width; i++)
             {
-                temp |= 1UL << (sizeX * (sizeY - 1)) + i;
+                temp |= 1UL << (width * (height - 1)) + i;
             }
             boundaries.Add(temp);
             temp = 0UL;
 
             // Generate the left col
-            for (int i = 0; i < sizeY; i++)
+            for (int i = 0; i < height; i++)
             {
-                temp |= 1UL << i * sizeX;
+                temp |= 1UL << i * width;
             }
             boundaries.Add(temp);
             temp = 0UL;
         }
 
+
+
+
+        /// <summary>
+        /// Returns the current state
+        /// </summary>
+        /// <returns></returns>
         public int GetState()
         {
-            var x = red;
-            var y = yellow;
-            var z = blue;
             return red | (yellow << 6) | (blue << 12);
         }
+
+
+
 
         /// <summary>
         /// Sets the state from red, yellow, and blue
@@ -370,6 +430,13 @@ namespace Primary_Puzzle_Solver
             this.blue = blue;
         }
 
+
+
+
+        /// <summary>
+        /// Sets the red, yellow, and blue channels from an existing state
+        /// </summary>
+        /// <param name="existingState">An int where the first 18 bits are split into the 3 colors</param>
         public void SetState(int existingState)
         {
             red = existingState & 0x3f;
@@ -377,6 +444,12 @@ namespace Primary_Puzzle_Solver
             blue = (existingState >> 12) & 0x3f;
         }
 
+
+
+
+        /// <summary>
+        /// Represents a direction the state can try to move in
+        /// </summary>
         public enum Direction
         {
             Up,
@@ -385,6 +458,14 @@ namespace Primary_Puzzle_Solver
             Right,
         }
 
+
+
+
+        /// <summary>
+        /// Given a direction, return a new state with the direction applied
+        /// </summary>
+        /// <param name="direction">The direction to try to move in</param>
+        /// <returns>A new state</returns>
         public int MoveToNewState(Direction direction)
         {
 
@@ -396,58 +477,55 @@ namespace Primary_Puzzle_Solver
                 (1UL << blue, 'b')
             };
 
-
-
+            // Prevents us from reinitializing variables
             ulong boundary = 0UL;
-            int moveDistance = 0;
+            int moveDirection = 0;
+            
             // Set up initial conditions
             switch (direction)
             {
                 case Direction.Up:
                     boundary = boundaries[0];
-                    moveDistance = sizeX;
+                    moveDirection = width;
                     colors.Sort();
                     break;
                 case Direction.Right:
                     boundary = boundaries[1];
-                    moveDistance = -1;
+                    moveDirection = -1;
                     colors.Sort();
                     colors.Reverse();
                     break;
                 case Direction.Down:
                     boundary = boundaries[2];
-                    moveDistance = -sizeX;
+                    moveDirection = -width;
                     colors.Sort();
                     colors.Reverse();
                     break;
                 case Direction.Left:
                     boundary = boundaries[3];
-                    moveDistance = 1;
+                    moveDirection = 1;
                     colors.Sort();
                     break;
                 default:
                     break;
             }
-
+            // It might be worth it to figure out which is most common and front load that
             for (int i = 0; i < colors.Count; i++)
             {
                 if ((colors[i].bitboard & boundary) != 0) // Touching border already
                 {
                     continue;
                 }
-                if (CheckOverlapColors(i, colors, moveDistance) == true) // Would have overlapped another tile
+                if (CheckOverlapColors(i, colors, moveDirection) == true) // Would have overlapped another tile
                 {
                     continue;
                 }
 
-                if (((ShiftBitboardCell(colors[i].bitboard, moveDistance)) & bitboardValue) != 0) // Would have overlapped a wall
+                if (((ShiftBitboardCell(colors[i].bitboard, moveDirection)) & wallData) != 0) // Would have overlapped a wall
                 {
                     continue;
                 }
-                //Console.WriteLine($"{colors[i].name} was at {colors[i].bitboard}");
-                colors[i] = (ShiftBitboardCell(colors[i].bitboard, moveDistance), colors[i].name);
-
-                //Console.WriteLine($"{colors[i].name} is now at {colors[i].bitboard}");
+                colors[i] = (ShiftBitboardCell(colors[i].bitboard, moveDirection), colors[i].name);
             }
 
             // Set the new state
@@ -456,16 +534,13 @@ namespace Primary_Puzzle_Solver
                 switch (colors[i].name)
                 {
                     case 'r':
-                        red = BitboardToIndex(colors[i].bitboard);
-                        //Console.WriteLine($"Red is {colors[i]}");
+                        red = BitboardToIndex(colors[i].bitboard, width, height);
                         break;
                     case 'y':
-                        yellow = BitboardToIndex(colors[i].bitboard);
-                        //Console.WriteLine($"{colors[i].name} is at {colors[i].bitboard}");
+                        yellow = BitboardToIndex(colors[i].bitboard, width, height);
                         break;
                     case 'b':
-                        blue = BitboardToIndex(colors[i].bitboard);
-                        //Console.WriteLine($"{colors[i].name} is at {colors[i].bitboard}");
+                        blue = BitboardToIndex(colors[i].bitboard, width, height);
                         break;
                 }
             }
@@ -473,83 +548,104 @@ namespace Primary_Puzzle_Solver
             return red | (yellow << 6) | (blue << 12);
         }
 
+
+
+
+        /// <summary>
+        /// Not yet in use. My refactor based on my Claude.ai message
+        /// </summary>
+        /// <param name="direction"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
         private (ulong boundary, int moveDistance, bool ShouldReverse) GetDirectionParameters(Direction direction)
         {
             return direction switch
             {
-                Direction.Up => (boundaries[0], sizeX, false),
-                Direction.Right => (boundaries[0], sizeX, false),
-                Direction.Down => (boundaries[0], sizeX, false),
-                Direction.Left => (boundaries[0], sizeX, false),
+                Direction.Up => (boundaries[0], width, false),
+                Direction.Right => (boundaries[0], width, false),
+                Direction.Down => (boundaries[0], width, false),
+                Direction.Left => (boundaries[0], width, false),
                 _ => throw new ArgumentException("Invalid direction", nameof(direction)),
             };
         }
 
 
+
+
         // Helper methods
-        private void CheckBounds(ulong bitboard, int sizeX, int sizeY)
+        /// <summary>
+        /// Throws an error if col or row is out of bounds
+        /// </summary>
+        /// <param name="col"></param>
+        /// <param name="row"></param>
+        /// <param name="zeroIndexed">Defaults to true. Otherwise, assumes 1-indexed</param>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        private void CheckBounds(int col, int row, bool zeroIndexed = true)
         {
-            if (sizeX < 1)
+            int lowIndex = 0;
+            int highIndex = 0;
+            if (zeroIndexed == true)
             {
-                throw new ArgumentOutOfRangeException("sizeX was too small.");
+                lowIndex = 0;
+                highIndex = 7;
             }
-            if (sizeY < 1)
+            else
             {
-                throw new ArgumentOutOfRangeException("sizeY was too small.");
+                lowIndex = 1;
+                highIndex = 8;
             }
-            if (sizeX > 8)
+            if (col < lowIndex)
             {
-                throw new ArgumentOutOfRangeException("sizeX was too large");
+                throw new ArgumentOutOfRangeException("width was too small.");
             }
-            if (sizeY > 8)
+            if (row < lowIndex)
             {
-                throw new ArgumentOutOfRangeException("sizeY was too large.");
+                throw new ArgumentOutOfRangeException("height was too small.");
+            }
+            if (col > highIndex)
+            {
+                throw new ArgumentOutOfRangeException("width was too large");
+            }
+            if (row > highIndex)
+            {
+                throw new ArgumentOutOfRangeException("height was too large.");
             }
         }
 
-        private void CheckBounds(int x, int y)
-        {
-            if (x < 0)
-            {
-                throw new ArgumentOutOfRangeException($"Can't get bitboard of sizeX {SizeX} with value {x} because {x} is too small.");
-            }
-            if (y < 0)
-            {
-                throw new ArgumentOutOfRangeException($"Can't get bitboard of sizeY {SizeY} with value {y} because {y} is too small.");
-            }
-            if (x >= SizeX)
-            {
-                throw new ArgumentOutOfRangeException($"Can't get bitboard of sizeX {SizeX} with value {x} because {x} is too large");
-            }
-            if (y >= SizeY)
-            {
-                throw new ArgumentOutOfRangeException($"Can't get bitboard of sizeY {SizeY} with value {y} because {y} is too large");
-            }
-        }
+        //private void CheckBounds(int x, int y)
+        //{
+        //    if (x < 0)
+        //    {
+        //        throw new ArgumentOutOfRangeException($"Can't get bitboard of sizeX {Width} with value {x} because {x} is too small.");
+        //    }
+        //    if (y < 0)
+        //    {
+        //        throw new ArgumentOutOfRangeException($"Can't get bitboard of sizeY {Height} with value {y} because {y} is too small.");
+        //    }
+        //    if (x >= Width)
+        //    {
+        //        throw new ArgumentOutOfRangeException($"Can't get bitboard of sizeX {Width} with value {x} because {x} is too large");
+        //    }
+        //    if (y >= Height)
+        //    {
+        //        throw new ArgumentOutOfRangeException($"Can't get bitboard of sizeY {Height} with value {y} because {y} is too large");
+        //    }
+        //}
+
+
+
+
+
 
         /// <summary>
-        /// Accepts a bitboard with a single bit and returns its index
+        /// Checks if the color at position in colors[i] would overlap with another color in colors if it moved in 'moveDirection' .
+        /// Since the colors are sorted, this might not be neccessary.
         /// </summary>
-        /// <param name="bitboard"></param>
-        private int BitboardToIndex(ulong bitboard)
-        {
-            if (BitOperations.PopCount(bitboard) != 1)
-            {
-                throw new ArgumentOutOfRangeException("Bitboard must contain exact 1 bit.");
-            }
-            // Convert single bit back into an index
-            int bitPosition = BitOperations.TrailingZeroCount(bitboard);
-            int row = bitPosition / sizeX;
-            int col = bitPosition % sizeX;
-            return row * sizeX + col;
-        }
-
-        /// <summary>
-        /// Checks if the color at colors[i] would overlap if it moved in 'direction' with another color in colors.
-        /// </summary>
-        /// <param name="color"></param>
+        /// <param name="i">The index of the color to check</param>
+        /// <param name="colors">The rest of the colors</param>
+        /// <param name="moveDirection">The direction we are trying to move</param>
         /// <returns></returns>
-        private bool CheckOverlapColors(int i, List<(ulong bitboard, char name)> colors, int moveDistance)
+        private bool CheckOverlapColors(int i, List<(ulong bitboard, char name)> colors, int moveDirection)
         {
             for (int j = 0; j < colors.Count; j++) // Check if the other tiles are here
             {
@@ -558,7 +654,7 @@ namespace Primary_Puzzle_Solver
                     continue;
                 }
                 ;
-                if (((ShiftBitboardCell(colors[i].bitboard, moveDistance)) & (colors[j].bitboard)) != 0)
+                if (((ShiftBitboardCell(colors[i].bitboard, moveDirection)) & (colors[j].bitboard)) != 0)
                 {
                     return true;
                 }
@@ -567,6 +663,15 @@ namespace Primary_Puzzle_Solver
             return false;
         }
 
+
+
+
+        /// <summary>
+        /// This lets us shift by a negative amount since you can't shift by a negative number
+        /// </summary>
+        /// <param name="bitboard">It assumes that bitboard has only 1 bit in it</param>
+        /// <param name="shiftAmount">The amount to shift. Typical ± 1 or ± width</param>
+        /// <returns>A bitboard with the bit shifted</returns>
         private ulong ShiftBitboardCell(ulong bitboard, int shiftAmount)
         {
             if (shiftAmount > 0)
@@ -579,9 +684,17 @@ namespace Primary_Puzzle_Solver
             }
         }
 
-        public string VisualizeBoundary()
+
+
+
+        /// <summary>
+        /// Prints the boundaries for debugging reasons
+        /// </summary>
+        /// <returns>A string containing the visualization</returns>
+        public string PrintBoundaries()
         {
             var result = new StringBuilder();
+            
             for(int boundary = 0; boundary < boundaries.Count; boundary++)
             {
                 switch (boundary)
@@ -601,20 +714,29 @@ namespace Primary_Puzzle_Solver
                     default:
                         break;
                 }
-                for (int y = 0; y < sizeY; y++)
+                for (int row = 0; row < height; row++)
                 {
-                    for (int x = 0; x < sizeX; x++)
+                    for (int col = 0; col < width; col++)
                     {
-                        int index = y * sizeX + x;
+                        int index = row * width + col;
                         result.Append(((boundaries[boundary] >> index) & 1UL) == 1 ? "1 " : "- ");
                     }
                     result.AppendLine();
                 }
                 result.AppendLine();
             }
+            Console.WriteLine(result.ToString());
             return result.ToString();
         }
 
+
+
+
+        /// <summary>
+        /// Performs a BFS to find all the possible states of a given bitboard and inital starting state
+        /// </summary>
+        /// <TODO>There might be a simplier version of this on Claude.ai</TODO>
+        /// <returns>A dictionary of type int, list where int is a new state and list contains all the moves needed to go from the inital state to the new state</returns>
         public Dictionary<int, List<Direction>> Solutions()
         {
             var visited = new HashSet<int>();
@@ -653,13 +775,22 @@ namespace Primary_Puzzle_Solver
             return solutions;
         }
 
+
+
+
+        /// <summary>
+        /// Prints an animation of the solution
+        /// </summary>
+        /// <param name="solution">The ending state and list of directions</param>
+        /// <param name="startState">The starting state</param>
+        /// <param name="bitboard">I might just set the current bitboard to startState and remove this</param>
         public void PrintSolution(KeyValuePair<int, List<Direction>> solution, int startState, Bitboard bitboard)
         {
-            int sleepTime = 750;
+            // How fast the animation plays
+            int sleepTime = 50;
             Console.Clear();
             Console.WriteLine("Initial state");
             bitboard.PrintBitboard();
-            Thread.Sleep(sleepTime);
 
             foreach(var x in solution.Value)
             {
