@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Dynamic;
 using System.Linq;
 using System.Numerics;
+using System.Reflection.PortableExecutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.X86;
 using System.Text;
@@ -1020,6 +1021,8 @@ namespace Primary_Puzzle_Solver
         /// <param name="processAction"></param>
         static void ProcessBinaryFileWrite(string filePath, Action<BinaryWriter> processAction)
         {
+            Console.WriteLine($"About to write to this path");
+            Console.WriteLine($"{filePath}");
             using (FileStream fileStream = new FileStream(filePath, FileMode.OpenOrCreate, FileAccess.Write))
             {
                 using (BinaryWriter binaryWriter = new BinaryWriter(fileStream))
@@ -1037,40 +1040,68 @@ namespace Primary_Puzzle_Solver
         /// </summary>
         /// <param name="bitboard"></param>
         /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
         public static (int Width, int Height) GetSize(ulong bitboard)
         {
-            (int Width, int Height) dimensions = (0, 0);
-            // Get the width
-            for(int i = 0; i < 8; i++)
+            (int Width, int Height) dimensionStart = (0, 0);
+            (int Width, int Height) dimensionEnd = (0, 0);
+            // Get the width start (first col with at least 1 empty cell)
+            for (int i = 0; i < 8; i++)
             {
-                if((~bitboard & CreateColMask(i, 8)) == 0)
+                if ((~bitboard & CreateColMask(i, 8)) != 0)
                 {
-                    //Console.WriteLine($"Width is {i}");
-                    dimensions.Width = i;
+                    dimensionStart.Width = i;
                     break;
                 }
             }
 
-            // Get the height
-            for(int i = 0; i < 8; i++)
+            // Get the width end (first full col)
+            for (int i = dimensionStart.Width + 1; i < 8; i++)
             {
-                if((~bitboard & CreateRowMask(i, 8)) == 0)
+                if ((~bitboard & CreateColMask(i, 8)) == 0)
                 {
-                    //Console.WriteLine($"Height is {i}");
-                    dimensions.Height = i;
+                    dimensionEnd.Width = i;
                     break;
                 }
             }
 
-            return dimensions;
+            if ((~bitboard & CreateColMask(7, 8)) > 0)
+            {
+                dimensionEnd.Width = 8;
+            }
+
+
+            // Get the height (first col with at least 1 empty cell)
+            for (int i = 0; i < 8; i++)
+            {
+                if ((~bitboard & CreateRowMask(i, 8)) != 0)
+                {
+                    dimensionStart.Height = i;
+                    break;
+                }
+            }
+
+            for (int i = dimensionStart.Height + 1; i < 8; i++)
+            {
+                if ((~bitboard & CreateRowMask(i, 8)) == 0)
+                {
+                    dimensionEnd.Height = i;
+                    break;
+                }
+            }
+
+            if ((~bitboard & CreateRowMask(7, 8)) > 0)
+            {
+                dimensionEnd.Height = 8;
+            }
+
+            return (dimensionEnd.Width - dimensionStart.Width, dimensionEnd.Height - dimensionStart.Height);
         }
 
         /// <summary>
-        /// Converts a bitboard of size 8 by 8 to a bitboard of size n by m.
-        /// It does this by finding the dimensions using GetSize().
-        /// And then shifting the 
-        /// 
+        /// Converts a bitboard of size 8 by 8 to a bitboard of size n by m.<br></br>
+        /// It does this by finding the dimensions using GetSize().<br></br>
+        /// And then shifting the bits so they are in the right place when called with Bitboard(wallData, width, height)<br></br>
+        /// This will be used mostly to do a one-time conversion of the file<br></br>
         /// </summary>
         public static ulong Convert8x8ToNxM(ulong bitboard)
         {
@@ -1079,8 +1110,8 @@ namespace Primary_Puzzle_Solver
 
             bitboard = ~bitboard;
             ulong result = 0UL;
-            
-            for(int i = 0; i < height; i++)
+
+            for (int i = 0; i < height; i++)
             {
                 // Get the current row's bits
                 ulong rowBits = (bitboard >> (i * (8 - width))) & CreateRowMask(i, width);
@@ -1088,7 +1119,7 @@ namespace Primary_Puzzle_Solver
                 result |= rowBits;
             }
 
-            return ~result;
+            return result;
         }
 
 
@@ -1098,13 +1129,99 @@ namespace Primary_Puzzle_Solver
         /// Goes through each bitboard and determines it's sizeX and sizeY and then saves them all to file
         /// </summary>
         /// <param name="filePath"></param>
-        public static void SeparatePuzzlesBySize(string filePath, bool verboseLogging = false)
+        public static void SeparatePuzzlesBySize(string inputFilePath, string outputFilePath, bool verboseLogging = false)
         {
+            // We probably could have used another approach
+            // For example, read a byte, write a byte
+            // Use file I/O to check if the file exists
+            // Don't even worry about the dictionary
+            Dictionary<(int Width, int Height), List<ulong>> bitboards = new Dictionary<(int a, int), List<ulong>>();
 
-            Dictionary<(int x, int), ulong> keyValuePairs = new Dictionary<(int a, int), ulong>();
+            ProcessBinaryFileRead(inputFilePath, reader =>
+            {
+                if (reader.BaseStream.Length % 8 != 0)
+                {
+                    throw new ArgumentException($"File length {reader.BaseStream.Length} is not a multiple of 8 bytes");
+                }
+                Console.WriteLine("Reading file into dictionary");
+                ulong bitboard = 0UL;
+                int Width = 0;
+                int Height = 0;
+                ulong converted = 0UL;
+                int i = 0; // For a quick test
+                while (reader.BaseStream.Position < reader.BaseStream.Length)
+                    //while (reader.BaseStream.Position < reader.BaseStream.Length && i < 1000)
+                {
+                    // For each one, get it's width and height
+                    // Use the width and height as the key
+                    // Use the ulong as the value
+                    bitboard = reader.ReadUInt64();
+                    Width = GetSize(bitboard).Width;
+                    Height = GetSize(bitboard).Height;
+                    converted = Convert8x8ToNxM(bitboard);
+                    //converted = Convert8x8ToNxM(bitboard);
+                    if (Width == 1)
+                    {
+                        Console.WriteLine("This bitboard had a Width of 1");
+                        PrintBitboard(bitboard, 8, 8);
+                    }
+                    if (Height == 1)
+                    {
+                        Console.WriteLine("This bitboard had a height of 1");
+                        PrintBitboard(bitboard, 8, 8);
+                    }
+                    if (bitboards.ContainsKey((Width, Height)) == false)
+                    {
+                        bitboards[(Width, Height)] = new List<ulong>();
+                        bitboards[(Width, Height)].Add(converted);
+                    }
+                    else
+                    {
+                        bitboards[(Width, Height)].Add(converted);
+                    }
+                    i++;
+                }
+            });
 
-            
+            // At this point the dictionary should be full
+            // For each key (width, height) create a new file named  width_height_bitboards.bin and add the ulong to the file
+            Console.WriteLine("Writing data into file");
+            foreach (var bitboard in bitboards)
+            {
+                string outputPath = outputFilePath + @$"\Bitboards {bitboard.Key.Width} x {bitboard.Key.Height}.bin";
+
+                // Calculate the minimum bytes needed
+                ProcessBinaryFileWrite(outputPath, writer =>
+                {
+                    int byteCount = GetByteCount(bitboard.Key.Width, bitboard.Key.Height);
+                    Console.WriteLine($"Writing {byteCount}");
+                    Thread.Sleep(1000);
+
+                    // Calculate byte count here
+                    foreach (var value in bitboard.Value)
+                    {
+                        ulong temp = value;
+                        for(int i = 0; i < byteCount; i++)
+                        {
+                            writer.Write((byte)(value & 0xFF));
+                            temp >>= 8;
+                        }
+                    }
+                });
+            }
         }
+
+
+
+
+        public static int GetByteCount(int width, int height)
+        {
+            return (int)Math.Ceiling((float)(width * height) / 8.0);
+        }
+
+
+
+
 
 
 
@@ -1153,17 +1270,27 @@ namespace Primary_Puzzle_Solver
 
 
 
-        public static void PrintBitboardFromFile(string filePath, int index)
+        public static void PrintBitboardFromFile(string filePath, int index, bool inverted = false)
         {
             ProcessBinaryFileRead(filePath, reader =>
             {
                 reader.BaseStream.Seek(index * sizeof(ulong), SeekOrigin.Begin);
                 ulong value = reader.ReadUInt64();
                 (int width, int height) dimensions = GetSize(value);
-                Console.WriteLine("Original");
-                PrintBitboard(value, dimensions.width, dimensions.height);
-                Console.WriteLine("Inverted");
-                PrintBitboard(~value, dimensions.width, dimensions.height);
+                if (inverted == true)
+                {
+                    Console.WriteLine("Inverted");
+                    PrintBitboard(~value, 8, 8);
+                    //PrintBitboard(~value, dimensions.width, dimensions.height);
+
+                }
+                else
+                {
+                    Console.WriteLine("Original");
+                    PrintBitboard(value, 6, 6);
+                    //PrintBitboard(value, dimensions.width, dimensions.height);
+
+                }
             });
         }
 
@@ -1186,17 +1313,48 @@ namespace Primary_Puzzle_Solver
                 }
 
             });
-            
+
             return dimensions;
         }
 
 
 
-
-        public static void InvertFile(string filePath)
+        public static void ReverseBinaryFile(string inputFilePath, string outputFilePath)
         {
             List<ulong> bitboards = new List<ulong>();
-            ProcessBinaryFileRead(filePath, reader =>
+            ProcessBinaryFileRead(inputFilePath, reader =>
+            {
+                if (reader.BaseStream.Length % 8 != 0)
+                {
+                    throw new ArgumentException($"File length {reader.BaseStream.Length} is not a multiple of 8 bytes");
+                }
+                Console.WriteLine("Reading file");
+                while (reader.BaseStream.Position < reader.BaseStream.Length)
+                {
+                    bitboards.Add(reader.ReadUInt64());
+                }
+            });
+            Console.WriteLine("Sorting file");
+            bitboards.Sort();
+            Console.WriteLine("Reversing file");
+            bitboards.Reverse();
+
+            ProcessBinaryFileWrite(outputFilePath, writer =>
+            {
+                foreach (ulong bitboard in bitboards)
+                {
+                    writer.Write(bitboard);
+                }
+            });
+        }
+
+
+
+
+        public static void InvertFile(string inputFilePath, string outputFilePath)
+        {
+            List<ulong> bitboards = new List<ulong>();
+            ProcessBinaryFileRead(inputFilePath, reader =>
             {
                 if (reader.BaseStream.Length % 8 != 0)
                 {
@@ -1207,12 +1365,11 @@ namespace Primary_Puzzle_Solver
                 {
                     bitboards.Add(~reader.ReadUInt64());
                 }
-
             });
 
             bitboards.Sort();
 
-            ProcessBinaryFileWrite(@"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted 8 by 8 inverted.bin", writer =>
+            ProcessBinaryFileWrite(outputFilePath, writer =>
             {
                 foreach (ulong bitboard in bitboards)
                 {
@@ -1250,11 +1407,14 @@ namespace Primary_Puzzle_Solver
                 }
                 for (long i = 0; i < range; i++)
                 {
-                    if (reader.BaseStream.Position == reader.BaseStream.Length)
+                    if (reader.BaseStream.Position >= reader.BaseStream.Length)
                     {
                         break; // End of file reached
                     }
                     ulong value = reader.ReadUInt64();
+                    ulong convert = Util.Convert8x8ToNxM(value);
+                    PrintBitboard(value, 8, 8);
+                    PrintBitboard(convert, 6, 6);
                 }
             });
         }
@@ -1294,7 +1454,7 @@ namespace Primary_Puzzle_Solver
         {
             if (BitOperations.PopCount(bitboard) != 1)
             {
-                throw new ArgumentOutOfRangeException("Bitboard must contain exact 1 bit.");
+                throw new ArgumentOutOfRangeException("Bitboard must contain exactly 1 bit.");
             }
             // Convert single bit back into an index
             int bitPosition = BitOperations.TrailingZeroCount(bitboard);

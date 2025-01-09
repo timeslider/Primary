@@ -5,24 +5,58 @@ using System.Text;
 using System.Text.Json;
 using static Primary_Puzzle_Solver.Util;
 
+// Paths on home PC
 // @"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted 8 by 8.bin"
 // @"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted.bin"
 // @"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted 8 by 8 inverted.bin"
+
+// Paths on laptop
+// @"C:\Users\Rober\Documents\Puzzles Master List Canonical Sorted 8 by 8 inverted.bin"
+// @"C:\Users\Rober\Documents\Puzzles separated for Primary\Bitboards 6 x 6.bin"
 namespace Primary_Puzzle_Solver
 {
     class Program
     {
         public static void Main()
         {
-            //string filePath = @"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted 8 by 8.bin";
-            //int offset = 0;
-            //HashSet<(int, int)> dimensions = new HashSet<(int, int)>();
-            //for (int i = offset; i < offset + 1000; i++)
+            //// Separates the files
+            string filePath = @"C:\Users\Rober\Documents\Master List.bin";
+            string directory = @"C:\Users\Rober\Documents\Puzzles separated for Primary n x m";
+
+            int offset = 0;
+
+            SeparatePuzzlesBySize(filePath, directory);
+
+
+
+
+            // Go through each file and determine if it would be better to save it as the original or in an inverted format
+
+
+
+
+
+
+            //Util.PrintBitboardRange(@"C:\Users\Rober\Documents\Puzzles separated for Primary\Bitboards 6 x 6.bin", 20000000, 100);
+
+            // Testing GetSize()
+            //Console.WriteLine(GetSize(16712796644520755199));
+
+
+
+
+
+
+            //for (int i = offset; i < offset + 10; i++)
             //{
+            //    // Index from the file
             //    Console.WriteLine($"i: {i}");
-            //    //PrintBitboardFromFile(filePath, i);
-            //    dimensions.Add(ProcessBitboardFromFile(filePath, i));
+            //    PrintBitboardFromFile(filePath, i);
+
             //}
+
+
+
 
             //Bitboard bitboard = new Bitboard(~6765632493369UL, 8);
             //var solutions = bitboard.Solutions().ToList();
@@ -49,9 +83,8 @@ namespace Primary_Puzzle_Solver
 
 
 
-            Bitboard bitboard = new Bitboard(0UL, 1);
+            //Bitboard bitboard = new Bitboard(0UL, 1);
 
-            Console.WriteLine(  );
 
             //ulong value = 7479;
             //(int width, int height) dimensions = GetSize(~value);
