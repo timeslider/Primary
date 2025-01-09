@@ -204,7 +204,7 @@ namespace Primary_Puzzle_Solver
 
         #region Not needed
         ///// <summary>
-        ///// Rotates a square bitboard 90° counter clockwise
+        ///// Rotates a square bitboard 90ï¿½ counter clockwise
         ///// </summary>
         //public void Rotate90CCSquare()
         //{
@@ -232,7 +232,7 @@ namespace Primary_Puzzle_Solver
 
 
         ///// <summary>
-        ///// Rotates a bitboard 180° by reversing all the bits
+        ///// Rotates a bitboard 180ï¿½ by reversing all the bits
         ///// </summary>
         //public void Rotate180()
         //{
@@ -631,6 +631,22 @@ namespace Primary_Puzzle_Solver
         //        throw new ArgumentOutOfRangeException($"Can't get bitboard of sizeY {Height} with value {y} because {y} is too large");
         //    }
         //}
+        /// <summary>
+        /// Accepts a bitboard with a single bit and returns its index
+        /// </summary>
+        /// <param name="bitboard"></param>
+        private int BitboardToIndex(ulong bitboard)
+        {
+            if (BitOperations.PopCount(bitboard) != 1)
+            {
+                throw new ArgumentOutOfRangeException("Bitboard must contain exact 1 bit.");
+            }
+            // Convert single bit back into an index
+            int bitPosition = BitOperations.TrailingZeroCount(bitboard);
+            int row = bitPosition / width;
+            int col = bitPosition % width;
+            return row * width + col;
+        }
 
 
 
@@ -670,7 +686,7 @@ namespace Primary_Puzzle_Solver
         /// This lets us shift by a negative amount since you can't shift by a negative number
         /// </summary>
         /// <param name="bitboard">It assumes that bitboard has only 1 bit in it</param>
-        /// <param name="shiftAmount">The amount to shift. Typical ± 1 or ± width</param>
+        /// <param name="shiftAmount">The amount to shift. Typical ï¿½ 1 or ï¿½ width</param>
         /// <returns>A bitboard with the bit shifted</returns>
         private ulong ShiftBitboardCell(ulong bitboard, int shiftAmount)
         {
