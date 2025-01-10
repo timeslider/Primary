@@ -9,6 +9,7 @@ using static Primary_Puzzle_Solver.Util;
 // @"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted 8 by 8.bin"
 // @"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted.bin"
 // @"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted 8 by 8 inverted.bin"
+// @"C:\Users\rober\Documents\Primary Puzzles\Originals"
 
 // Paths on laptop
 // @"C:\Users\Rober\Documents\Puzzles Master List Canonical Sorted 8 by 8 inverted.bin"
@@ -19,21 +20,14 @@ namespace Primary_Puzzle_Solver
     {
         public static void Main()
         {
-            //// Separates the files
-            string filePath = @"C:\Users\Rober\Documents\Master List.bin";
-            string directory = @"C:\Users\Rober\Documents\Puzzles separated for Primary n x m";
+            // Now let's remove based on more critiera
 
-            int offset = 0;
+            // Don't include based on
 
-            SeparatePuzzlesBySize(filePath, directory);
+            string originals = @"C:\Users\rober\Documents\Primary Puzzles\Originals";
+            string goodOnes = @"C:\Users\rober\Documents\Primary Puzzles\Good ones";
 
-
-
-
-            // Go through each file and determine if it would be better to save it as the original or in an inverted format
-
-
-
+            var binFiles = Directory.EnumerateFiles()
 
 
 

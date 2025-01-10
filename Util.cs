@@ -1149,8 +1149,8 @@ namespace Primary_Puzzle_Solver
                 int Height = 0;
                 ulong converted = 0UL;
                 int i = 0; // For a quick test
-                while (reader.BaseStream.Position < reader.BaseStream.Length)
-                    //while (reader.BaseStream.Position < reader.BaseStream.Length && i < 1000)
+                //while (reader.BaseStream.Position < reader.BaseStream.Length)
+                while (reader.BaseStream.Position < reader.BaseStream.Length && i < 1000)
                 {
                     // For each one, get it's width and height
                     // Use the width and height as the key
@@ -1160,16 +1160,7 @@ namespace Primary_Puzzle_Solver
                     Height = GetSize(bitboard).Height;
                     converted = Convert8x8ToNxM(bitboard);
                     //converted = Convert8x8ToNxM(bitboard);
-                    if (Width == 1)
-                    {
-                        Console.WriteLine("This bitboard had a Width of 1");
-                        PrintBitboard(bitboard, 8, 8);
-                    }
-                    if (Height == 1)
-                    {
-                        Console.WriteLine("This bitboard had a height of 1");
-                        PrintBitboard(bitboard, 8, 8);
-                    }
+
                     if (bitboards.ContainsKey((Width, Height)) == false)
                     {
                         bitboards[(Width, Height)] = new List<ulong>();
@@ -1189,21 +1180,16 @@ namespace Primary_Puzzle_Solver
             foreach (var bitboard in bitboards)
             {
                 string outputPath = outputFilePath + @$"\Bitboards {bitboard.Key.Width} x {bitboard.Key.Height}.bin";
-
-                // Calculate the minimum bytes needed
                 ProcessBinaryFileWrite(outputPath, writer =>
                 {
                     int byteCount = GetByteCount(bitboard.Key.Width, bitboard.Key.Height);
                     Console.WriteLine($"Writing {byteCount}");
-                    Thread.Sleep(1000);
-
-                    // Calculate byte count here
                     foreach (var value in bitboard.Value)
                     {
                         ulong temp = value;
                         for(int i = 0; i < byteCount; i++)
                         {
-                            writer.Write((byte)(value & 0xFF));
+                            writer.Write((byte)(temp & 0xFF));
                             temp >>= 8;
                         }
                     }

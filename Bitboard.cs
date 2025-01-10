@@ -635,7 +635,7 @@ namespace Primary_Puzzle_Solver
         /// Accepts a bitboard with a single bit and returns its index
         /// </summary>
         /// <param name="bitboard"></param>
-        private int BitboardToIndex(ulong bitboard)
+        private int BitboardToIndex(ulong bitboard, int width, int height)
         {
             if (BitOperations.PopCount(bitboard) != 1)
             {
