@@ -269,7 +269,7 @@ namespace Primary_Puzzle_Solver
             {
                 if (GetBitboardCell(i) == false)
                 {
-                    Console.WriteLine($"Found red's index at {i}");
+                    //Console.WriteLine($"Found red's index at {i}");
                     red = i;
                     break;
                 }
@@ -281,59 +281,59 @@ namespace Primary_Puzzle_Solver
             // check if the cell right of Red is empty AND next cell is not on the next row
             if(GetBitboardCell(red + 1) == false && (red + 1) % (width) != 0)
             {
-                Console.WriteLine("Case 1: Adding something to the right of red.");
+                //Console.WriteLine("Case 1: Adding something to the right of red.");
                 next.Add(red + 1);
                 // Check right
                 if (GetBitboardCell(next[0] + 1) == false && (next[0] + 1) % (width) != 0)
                 {
-                    Console.WriteLine($"Case 2: The cell to the right of the 2nd cell was empty and this cell is not currently on the right most edge already.");
+                    //Console.WriteLine($"Case 2: The cell to the right of the 2nd cell was empty and this cell is not currently on the right most edge already.");
                     next.Add(next[0] + 1);
                 }
                 // Check under red
                 else if (GetBitboardCell(red + width) == false)
                 {
-                    Console.WriteLine($"Case 3: Adding something under red.");
+                    //Console.WriteLine($"Case 3: Adding something under red.");
                     next.Add(red + width);
                 }
                 // Check under yellow
                 else if (GetBitboardCell(next[0] + width) == false)
                 {
-                    Console.WriteLine($"Case 4: Adding something under yellow.");
+                    //Console.WriteLine($"Case 4: Adding something under yellow.");
                     next.Add(next[0] + width);
                 }
                 else
                 {
-                    Console.WriteLine($"Case 5: There wasn't enough empty cells to fit all the colored tiles.");
+                    //Console.WriteLine($"Case 5: There wasn't enough empty cells to fit all the colored tiles.");
                     throw new Exception($"Case 5: There wasn't enough empty cells to fit all the colored tiles.");
                 }
             }
             else
             {
                 // The cell right of red wasn't empty OR red it touching the right most edge.
-                Console.WriteLine($"Case 6: Adding something under red.");
+                //Console.WriteLine($"Case 6: Adding something under red.");
                 next.Add(red + width);
                 // The cell left to the previous is empty AND the previous cell wasn't already on the left most edge.
                 // And the left cell isn't red.
                 if (GetBitboardCell(next[0] - 1) == false && (next[0] - 1) % (width - 1) != 0 && (next[0] - 1) != red)
                 {
-                    Console.WriteLine($"Case 7: The cell to the left of the 2nd cell was not a wall, this cell was not on the left most edge, and the left most cell was not red.");
+                    //Console.WriteLine($"Case 7: The cell to the left of the 2nd cell was not a wall, this cell was not on the left most edge, and the left most cell was not red.");
                     next.Add(next[0] - 1);
                 }
                 // Check right
                 else if (GetBitboardCell(next[0] + 1) == false && (next[0] + 1) % (width) != 0)
                 {
-                    Console.WriteLine($"Case 8: The cell to the right of the 2nd cell was empty and this cell is not currently on the right most edge already.");
+                    //Console.WriteLine($"Case 8: The cell to the right of the 2nd cell was empty and this cell is not currently on the right most edge already.");
                     next.Add(next[0] + 1);
                 }
                 // Check down
                 else if (GetBitboardCell(next[0] + width) == false)
                 {
-                    Console.WriteLine($"Case 9: There's nothing below, so add below.");
+                    //Console.WriteLine($"Case 9: There's nothing below, so add below.");
                     next.Add(next[0] + width);
                 }
                 else
                 {
-                    Console.WriteLine($"Case 10: There wasn't enough empty cells to fit all the colored tiles.");
+                    //Console.WriteLine($"Case 10: There wasn't enough empty cells to fit all the colored tiles.");
                     throw new Exception("Case 10: There wasn't enough empty cells to fit all the colored tiles.");
                 }
             }

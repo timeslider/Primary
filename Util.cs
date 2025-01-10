@@ -1187,7 +1187,7 @@ namespace Primary_Puzzle_Solver
                     foreach (var value in bitboard.Value)
                     {
                         ulong temp = value;
-                        for(int i = 0; i < byteCount; i++)
+                        for (int i = 0; i < byteCount; i++)
                         {
                             writer.Write((byte)(temp & 0xFF));
                             temp >>= 8;
@@ -1398,7 +1398,7 @@ namespace Primary_Puzzle_Solver
                         break; // End of file reached
                     }
                     ulong value = reader.ReadUInt64();
-                    ulong convert = Util.Convert8x8ToNxM(value);
+                    ulong convert = Convert8x8ToNxM(value);
                     PrintBitboard(value, 8, 8);
                     PrintBitboard(convert, 6, 6);
                 }
@@ -1447,6 +1447,91 @@ namespace Primary_Puzzle_Solver
             int row = bitPosition / width;
             int col = bitPosition % width;
             return row * width + col;
+        }
+
+
+
+
+        /// <summary>
+        /// Loops through each ulong in file. Right now it works under the assumption that each bitboard is 8 bytes.
+        /// It needs to working under a variable byte count using GetByteCount and the width and height from the filename.
+        /// I'm not sure why the total is so high. It should 956 but it's 21000 something. Are we double counting???
+        /// </summary>
+        /// <param name="filePath">The name of the file we are processing</param>
+        public static void LoopThroughDirectory(string filePath)
+        {
+            ProcessBinaryFileRead(filePath, reader =>
+            {
+                int totalSolutions = 0;
+                int minSolutions = int.MaxValue;
+                int maxSolutions = 0;
+
+                Dictionary<int, List<Bitboard.Direction>> solutions = new();
+                Bitboard bitboard;
+                Dictionary<int, int> solutionCount = new Dictionary<int, int>();
+                while (reader.BaseStream.Position < reader.BaseStream.Length)
+                {
+                    ulong value = BytesToUlong(reader.ReadBytes(8));
+                    bitboard = new Bitboard(value, 8);
+                    //PrintBitboard(value, 8, 8);
+                    solutions = bitboard.Solutions();
+                    if (solutionCount.ContainsKey(solutions.Count) == false)
+                    {
+                        solutionCount[solutions.Count] = 1;
+                    }
+                    else
+                    {
+                        solutionCount[solutions.Count] += 1;
+                    }
+                }
+
+                var sol = solutionCount.ToList();
+
+                StringBuilder stringBuilder = new StringBuilder();
+                stringBuilder.Append("Solutions | Solution total\n");
+
+                foreach (var solution in solutionCount)
+                {
+                    stringBuilder.AppendLine(solution.Key + " " + solution.Value);
+                }
+                // @"C:\Users\Rober\Documents\Solution Counts\"
+                using (FileStream fileStream = new FileStream($@"C:\Users\Rober\Documents\Solution Counts\4 x 4.txt", FileMode.OpenOrCreate, FileAccess.Write))
+                {
+                    using (StreamWriter writer = new StreamWriter(fileStream))
+                    {
+                        writer.Write(stringBuilder.ToString());
+                    }
+                }
+            });
+        }
+
+
+        private static ulong BytesToUlong(byte[] bytes)
+        {
+            if (bytes == null)
+            {
+                throw new ArgumentNullException(nameof(bytes));
+            }
+            if (bytes.Length > 8)
+            {
+                throw new ArgumentException("Must be 8 elements or fewer");
+            }
+
+            ulong result = 0;
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                result |= (ulong)bytes[i] << (i * 8);
+            }
+            return result;
+        }
+
+
+
+
+        public static decimal Mean(List<int> ints)
+        {
+
+            throw new NotImplementedException();
         }
     }
 }

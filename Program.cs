@@ -10,10 +10,13 @@ using static Primary_Puzzle_Solver.Util;
 // @"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted.bin"
 // @"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted 8 by 8 inverted.bin"
 // @"C:\Users\rober\Documents\Primary Puzzles\Originals"
+// string originals = @"C:\Users\rober\Documents\Primary Puzzles\Originals";
+// string goodOnes = @"C:\Users\rober\Documents\Primary Puzzles\Good ones";
 
 // Paths on laptop
 // @"C:\Users\Rober\Documents\Puzzles Master List Canonical Sorted 8 by 8 inverted.bin"
 // @"C:\Users\Rober\Documents\Puzzles separated for Primary\Bitboards 6 x 6.bin"
+// @"C:\Users\Rober\Documents\Primary Puzzles Good Ones"
 namespace Primary_Puzzle_Solver
 {
     class Program
@@ -22,14 +25,25 @@ namespace Primary_Puzzle_Solver
         {
             // Now let's remove based on more critiera
 
-            // Don't include based on
+            // Don't include based on width and height
 
-            string originals = @"C:\Users\rober\Documents\Primary Puzzles\Originals";
-            string goodOnes = @"C:\Users\rober\Documents\Primary Puzzles\Good ones";
+            Action action = () =>
+            {
+                string originals = @"C:\Users\Rober\Documents\Puzzles separated for Primary";
+                string goodOnes = @"C:\Users\Rober\Documents\Primary Puzzles Good Ones";
 
-            var binFiles = Directory.EnumerateFiles()
+                var binFiles = Directory.EnumerateFiles(originals, "*.bin");
 
+                foreach (var binFile in binFiles)
+                {
+                    if (binFile.Contains("4 x 4"))
+                    {
+                        LoopThroughDirectory(binFile);
+                    }
+                }
+            };
 
+            TimeAction(action, 1);
 
             //Util.PrintBitboardRange(@"C:\Users\Rober\Documents\Puzzles separated for Primary\Bitboards 6 x 6.bin", 20000000, 100);
 
