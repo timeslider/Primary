@@ -54,8 +54,45 @@ namespace Primary_Puzzle_Solver
             }
         }
 
+
+
         /// <summary>
-        /// Gets the value of the bool at position x, y
+        /// Assumes the bitboard is 8x8
+        /// </summary>
+        /// <param name="bitBoard"></param>
+        /// <param name="col"></param>
+        /// <param name="row"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        public static ulong SetBitboardCell(ulong bitBoard, int col, int row, bool value)
+        {
+            if (col < 0 || row < 0)
+            {
+                throw new ArgumentOutOfRangeException("The col or row was too small");
+            }
+            if (col >= 8 || row >= 8)
+            {
+                throw new ArgumentOutOfRangeException("The col or row was too large");
+            }
+
+            int bitPosition = row * 8 + col;
+
+            if (value == true)
+            {
+                return bitBoard |= (1UL << bitPosition);
+            }
+            else
+            {
+                return bitBoard &= ~(1UL << bitPosition);
+            }
+        }
+
+
+
+
+        /// <summary>
+        /// Gets the value of the bool at position (x, y)
         /// </summary>
         /// <param name="bitBoard">The bitboard to query.</param>
         /// <param name="col">The 0-indexed column value.</param>
@@ -67,6 +104,27 @@ namespace Primary_Puzzle_Solver
             int bitPosition = row * width + col;
             return (bitBoard & (1UL << bitPosition)) != 0;
         }
+
+
+
+
+        /// <summary>
+        /// Gets the value of the bool at position (x, y)<br></br>
+        /// Assumes the bitboard is 8x8
+        /// </summary>
+        /// <param name="bitBoard">The bitboard to query.</param>
+        /// <param name="col">The 0-indexed column value.</param>
+        /// <param name="row">The 0-indexed row value.</param>
+        /// <returns></returns>
+        public static bool GetBitboardCell(ulong bitBoard, int col, int row)
+        {
+
+            int bitPosition = row * 8 + col;
+            return (bitBoard & (1UL << bitPosition)) != 0;
+        }
+
+
+
 
         /// <summary>
         /// Gets the value of the bool at index.
@@ -80,6 +138,16 @@ namespace Primary_Puzzle_Solver
             return (bitboard & (1UL << index)) != 0;
         }
 
+
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="bitBoard"></param>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
+        /// <param name="invert"></param>
         public static void PrintBitboard(ulong bitBoard, int width, int height, bool invert = false)
         {
             StringBuilder sb = new StringBuilder();
@@ -119,8 +187,59 @@ namespace Primary_Puzzle_Solver
             Console.WriteLine(sb.ToString());
         }
 
+
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="bitBoard"></param>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
+        /// <param name="invert"></param>
+        public static void PrintBitboard(ulong bitBoard, bool invert = false)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            // Prints the puzzle ID so we always know which puzzle we are displaying
+            sb.Append(bitBoard + "\n");
+
+            for (int row = 0; row < 8; row++)
+            {
+                for (int col = 0; col < 8; col++)
+                {
+                    if (invert == true)
+                    {
+                        if (GetBitboardCell(bitBoard, col, row, 8) == true)
+                        {
+                            sb.Append("- ");
+                        }
+                        else
+                        {
+                            sb.Append("1 ");
+                        }
+                    }
+                    else
+                    {
+                        if (GetBitboardCell(bitBoard, col, row, 8) == true)
+                        {
+                            sb.Append("1 ");
+                        }
+                        else
+                        {
+                            sb.Append("- ");
+                        }
+                    }
+                }
+                sb.Append('\n');
+            }
+            Console.WriteLine(sb.ToString());
+        }
+
+
+
         // Rotates an 8x8 bitBoard 90 degrees counter clockwise
-        public static ulong Rotate90CCFast_8x8(ulong bitBoard)
+        public static ulong Rotate90CC(ulong bitBoard)
         {
             bitBoard =
                  (Bmi2.X64.ParallelBitExtract(bitBoard, 0b0000000100000001000000010000000100000001000000010000000100000001) << 56) |
@@ -135,23 +254,13 @@ namespace Primary_Puzzle_Solver
             return bitBoard;
         }
 
-        public static ulong Rotate90CCFast_7x7(ulong bitBoard)
-        {
-            bitBoard =
-                 (Bmi2.X64.ParallelBitExtract(bitBoard, 0b0000000100000001000000010000000100000001000000010000000100000001) << 42) |
-                 (Bmi2.X64.ParallelBitExtract(bitBoard, 0b0000001000000010000000100000001000000010000000100000001000000010) << 35) |
-                 (Bmi2.X64.ParallelBitExtract(bitBoard, 0b0000010000000100000001000000010000000100000001000000010000000100) << 28) |
-                 (Bmi2.X64.ParallelBitExtract(bitBoard, 0b0000100000001000000010000000100000001000000010000000100000001000) << 21) |
-                 (Bmi2.X64.ParallelBitExtract(bitBoard, 0b0001000000010000000100000001000000010000000100000001000000010000) << 14) |
-                 (Bmi2.X64.ParallelBitExtract(bitBoard, 0b0010000000100000001000000010000000100000001000000010000000100000) << 7) |
-                 (Bmi2.X64.ParallelBitExtract(bitBoard, 0b0100000001000000010000000100000001000000010000000100000001000000));
-
-            return bitBoard;
-        }
 
 
-
-
+        /// <summary>
+        /// This is bascially what is known a byteswap
+        /// </summary>
+        /// <param name="bitBoard"></param>
+        /// <returns></returns>
         public static ulong FlipHorizontally(ulong bitBoard)
         {
             bitBoard = (bitBoard << 56) |
@@ -165,6 +274,8 @@ namespace Primary_Puzzle_Solver
 
             return bitBoard;
         }
+
+
 
 
         // The goal of the follows is to clean up the row_x_xxx stuff below. Good luck
@@ -192,342 +303,342 @@ namespace Primary_Puzzle_Solver
 
 
 
-        // ################
-        // # Rows for 1x1 #
-        // ################
-        private readonly static ulong row_0_1x1 = 0x1;
+        //// ################
+        //// # Rows for 1x1 #
+        //// ################
+        //private readonly static ulong row_0_1x1 = 0x1;
 
 
-        // ###################
-        // # Columns for 1x1 #
-        // ###################
-        private readonly static ulong col_0_1x1 = 0x1;
+        //// ###################
+        //// # Columns for 1x1 #
+        //// ###################
+        //private readonly static ulong col_0_1x1 = 0x1;
 
-        public static readonly ulong[] rows_1x1 = [row_0_1x1];
-        public static readonly ulong[] rowsBelow_1x1 = [];
+        //public static readonly ulong[] rows_1x1 = [row_0_1x1];
+        //public static readonly ulong[] rowsBelow_1x1 = [];
 
-        public static readonly ulong[] cols_1x1 = [col_0_1x1];
-        public static readonly ulong[] colsRight_1x1 = [];
+        //public static readonly ulong[] cols_1x1 = [col_0_1x1];
+        //public static readonly ulong[] colsRight_1x1 = [];
 
 
 
 
-        // ################
-        // # Rows for 2x2 #
-        // ################
-        private readonly static ulong row_0_2x2 = 0x3;
-        private readonly static ulong row_0_below_2x2 = 0x300;
+        //// ################
+        //// # Rows for 2x2 #
+        //// ################
+        //private readonly static ulong row_0_2x2 = 0x3;
+        //private readonly static ulong row_0_below_2x2 = 0x300;
 
-        private readonly static ulong row_1_2x2 = 0x300;
+        //private readonly static ulong row_1_2x2 = 0x300;
 
 
-        // ###################
-        // # Columns for 2x2 #
-        // ###################
-        private readonly static ulong col_0_2x2 = 0x101;
-        private readonly static ulong col_0_right_2x2 = 0x202;
+        //// ###################
+        //// # Columns for 2x2 #
+        //// ###################
+        //private readonly static ulong col_0_2x2 = 0x101;
+        //private readonly static ulong col_0_right_2x2 = 0x202;
 
-        private readonly static ulong col_1_2x2 = 0x202;
+        //private readonly static ulong col_1_2x2 = 0x202;
 
-        public static readonly ulong[] rows_2x2 = [row_0_2x2, row_1_2x2];
-        public static readonly ulong[] rowsBelow_2x2 = [row_0_below_2x2];
+        //public static readonly ulong[] rows_2x2 = [row_0_2x2, row_1_2x2];
+        //public static readonly ulong[] rowsBelow_2x2 = [row_0_below_2x2];
 
-        public static readonly ulong[] cols_2x2 = [col_0_2x2, col_1_2x2];
-        public static readonly ulong[] colsRight_2x2 = [col_0_right_2x2];
+        //public static readonly ulong[] cols_2x2 = [col_0_2x2, col_1_2x2];
+        //public static readonly ulong[] colsRight_2x2 = [col_0_right_2x2];
 
 
 
 
-        // ################
-        // # Rows for 3x3 #
-        // ################
-        private readonly static ulong row_0_3x3 = 0x7;
-        private readonly static ulong row_0_below_3x3 = 0x70700;
+        //// ################
+        //// # Rows for 3x3 #
+        //// ################
+        //private readonly static ulong row_0_3x3 = 0x7;
+        //private readonly static ulong row_0_below_3x3 = 0x70700;
 
-        private readonly static ulong row_1_3x3 = 0x700;
-        private readonly static ulong row_1_below_3x3 = 0x70000;
+        //private readonly static ulong row_1_3x3 = 0x700;
+        //private readonly static ulong row_1_below_3x3 = 0x70000;
 
-        private readonly static ulong row_2_3x3 = 0x70000;
+        //private readonly static ulong row_2_3x3 = 0x70000;
 
 
 
-        // ###################
-        // # Columns for 3x3 #
-        // ###################
-        private readonly static ulong col_0_3x3 = 0x10101;
-        private readonly static ulong col_0_right_3x3 = 0x60606;
+        //// ###################
+        //// # Columns for 3x3 #
+        //// ###################
+        //private readonly static ulong col_0_3x3 = 0x10101;
+        //private readonly static ulong col_0_right_3x3 = 0x60606;
 
-        private readonly static ulong col_1_3x3 = 0x20202;
-        private readonly static ulong col_1_right_3x3 = 0x40404;
+        //private readonly static ulong col_1_3x3 = 0x20202;
+        //private readonly static ulong col_1_right_3x3 = 0x40404;
 
-        private readonly static ulong col_2_3x3 = 0x40404;
+        //private readonly static ulong col_2_3x3 = 0x40404;
 
 
-        public static readonly ulong[] rows_3x3 = [row_0_3x3, row_1_3x3, row_2_3x3];
-        public static readonly ulong[] rowsBelow_3x3 = [row_0_below_3x3, row_1_below_3x3];
+        //public static readonly ulong[] rows_3x3 = [row_0_3x3, row_1_3x3, row_2_3x3];
+        //public static readonly ulong[] rowsBelow_3x3 = [row_0_below_3x3, row_1_below_3x3];
 
-        public static readonly ulong[] cols_3x3 = [col_0_3x3, col_1_3x3, col_2_3x3];
-        public static readonly ulong[] colsRight_3x3 = [col_0_right_3x3, col_1_right_3x3];
+        //public static readonly ulong[] cols_3x3 = [col_0_3x3, col_1_3x3, col_2_3x3];
+        //public static readonly ulong[] colsRight_3x3 = [col_0_right_3x3, col_1_right_3x3];
 
 
 
 
-        // ################
-        // # Rows for 4x4 #
-        // ################
-        private readonly static ulong row_0_4x4 = 0xf;
-        private readonly static ulong row_0_below_4x4 = 0xf0f0f00;
+        //// ################
+        //// # Rows for 4x4 #
+        //// ################
+        //private readonly static ulong row_0_4x4 = 0xf;
+        //private readonly static ulong row_0_below_4x4 = 0xf0f0f00;
 
-        private readonly static ulong row_1_4x4 = 0xf00;
-        private readonly static ulong row_1_below_4x4 = 0xf0f0000;
+        //private readonly static ulong row_1_4x4 = 0xf00;
+        //private readonly static ulong row_1_below_4x4 = 0xf0f0000;
 
-        private readonly static ulong row_2_4x4 = 0xf0000;
-        private readonly static ulong row_2_below_4x4 = 0xf000000;
+        //private readonly static ulong row_2_4x4 = 0xf0000;
+        //private readonly static ulong row_2_below_4x4 = 0xf000000;
 
-        private readonly static ulong row_3_4x4 = 0xf000000;
+        //private readonly static ulong row_3_4x4 = 0xf000000;
 
 
-        // ###################
-        // # Columns for 4x4 #
-        // ###################
-        private readonly static ulong col_0_4x4 = 0x1010101;
-        private readonly static ulong col_0_right_4x4 = 0xe0e0e0e;
+        //// ###################
+        //// # Columns for 4x4 #
+        //// ###################
+        //private readonly static ulong col_0_4x4 = 0x1010101;
+        //private readonly static ulong col_0_right_4x4 = 0xe0e0e0e;
 
-        private readonly static ulong col_1_4x4 = 0x2020202;
-        private readonly static ulong col_1_right_4x4 = 0xc0c0c0c;
+        //private readonly static ulong col_1_4x4 = 0x2020202;
+        //private readonly static ulong col_1_right_4x4 = 0xc0c0c0c;
 
-        private readonly static ulong col_2_4x4 = 0x4040404;
-        private readonly static ulong col_2_right_4x4 = 0x8080808;
+        //private readonly static ulong col_2_4x4 = 0x4040404;
+        //private readonly static ulong col_2_right_4x4 = 0x8080808;
 
-        private readonly static ulong col_3_4x4 = 0x8080808;
+        //private readonly static ulong col_3_4x4 = 0x8080808;
 
-        public static readonly ulong[] rows_4x4 = [row_0_4x4, row_1_4x4, row_2_4x4, row_3_4x4];
-        public static readonly ulong[] rowsBelow_4x4 = [row_0_below_4x4, row_1_below_4x4, row_2_below_4x4];
+        //public static readonly ulong[] rows_4x4 = [row_0_4x4, row_1_4x4, row_2_4x4, row_3_4x4];
+        //public static readonly ulong[] rowsBelow_4x4 = [row_0_below_4x4, row_1_below_4x4, row_2_below_4x4];
 
-        public static readonly ulong[] cols_4x4 = [col_0_4x4, col_1_4x4, col_2_4x4, col_3_4x4];
-        public static readonly ulong[] colsRight_4x4 = [col_0_right_4x4, col_1_right_4x4, col_2_right_4x4];
+        //public static readonly ulong[] cols_4x4 = [col_0_4x4, col_1_4x4, col_2_4x4, col_3_4x4];
+        //public static readonly ulong[] colsRight_4x4 = [col_0_right_4x4, col_1_right_4x4, col_2_right_4x4];
 
 
 
 
-        // ################
-        // # Rows for 5x5 #
-        // ################
-        private readonly static ulong row_0_5x5 = 0x1f;
-        private readonly static ulong row_0_below_5x5 = 0x1f1f1f1f00;
+        //// ################
+        //// # Rows for 5x5 #
+        //// ################
+        //private readonly static ulong row_0_5x5 = 0x1f;
+        //private readonly static ulong row_0_below_5x5 = 0x1f1f1f1f00;
 
-        private readonly static ulong row_1_5x5 = 0x1f00;
-        private readonly static ulong row_1_below_5x5 = 0x1f1f1f0000;
+        //private readonly static ulong row_1_5x5 = 0x1f00;
+        //private readonly static ulong row_1_below_5x5 = 0x1f1f1f0000;
 
-        private readonly static ulong row_2_5x5 = 0x1f0000;
-        private readonly static ulong row_2_below_5x5 = 0x1f1f000000;
+        //private readonly static ulong row_2_5x5 = 0x1f0000;
+        //private readonly static ulong row_2_below_5x5 = 0x1f1f000000;
 
-        private readonly static ulong row_3_5x5 = 0x1f000000;
-        private readonly static ulong row_3_below_5x5 = 0x1f00000000;
+        //private readonly static ulong row_3_5x5 = 0x1f000000;
+        //private readonly static ulong row_3_below_5x5 = 0x1f00000000;
 
-        private readonly static ulong row_4_5x5 = 0x1f00000000;
+        //private readonly static ulong row_4_5x5 = 0x1f00000000;
 
 
-        // ###################
-        // # Columns for 5x5 #
-        // ###################
-        private readonly static ulong col_0_5x5 = 0x101010101;
-        private readonly static ulong col_0_right_5x5 = 0x1e1e1e1e1e;
+        //// ###################
+        //// # Columns for 5x5 #
+        //// ###################
+        //private readonly static ulong col_0_5x5 = 0x101010101;
+        //private readonly static ulong col_0_right_5x5 = 0x1e1e1e1e1e;
 
-        private readonly static ulong col_1_5x5 = 0x202020202;
-        private readonly static ulong col_1_right_5x5 = 0x1c1c1c1c1c;
+        //private readonly static ulong col_1_5x5 = 0x202020202;
+        //private readonly static ulong col_1_right_5x5 = 0x1c1c1c1c1c;
 
-        private readonly static ulong col_2_5x5 = 0x404040404;
-        private readonly static ulong col_2_right_5x5 = 0x1818181818;
+        //private readonly static ulong col_2_5x5 = 0x404040404;
+        //private readonly static ulong col_2_right_5x5 = 0x1818181818;
 
-        private readonly static ulong col_3_5x5 = 0x808080808;
-        private readonly static ulong col_3_right_5x5 = 0x1010101010;
+        //private readonly static ulong col_3_5x5 = 0x808080808;
+        //private readonly static ulong col_3_right_5x5 = 0x1010101010;
 
-        private readonly static ulong col_4_5x5 = 0x1010101010;
+        //private readonly static ulong col_4_5x5 = 0x1010101010;
 
-        public static readonly ulong[] rows_5x5 = [row_0_5x5, row_1_5x5, row_2_5x5, row_3_5x5, row_4_5x5];
-        public static readonly ulong[] rowsBelow_5x5 = [row_0_below_5x5, row_1_below_5x5, row_2_below_5x5, row_3_below_5x5];
+        //public static readonly ulong[] rows_5x5 = [row_0_5x5, row_1_5x5, row_2_5x5, row_3_5x5, row_4_5x5];
+        //public static readonly ulong[] rowsBelow_5x5 = [row_0_below_5x5, row_1_below_5x5, row_2_below_5x5, row_3_below_5x5];
 
-        public static readonly ulong[] cols_5x5 = [col_0_5x5, col_1_5x5, col_2_5x5, col_3_5x5, col_4_5x5];
-        public static readonly ulong[] colsRight_5x5 = [col_0_right_5x5, col_1_right_5x5, col_2_right_5x5, col_3_right_5x5];
+        //public static readonly ulong[] cols_5x5 = [col_0_5x5, col_1_5x5, col_2_5x5, col_3_5x5, col_4_5x5];
+        //public static readonly ulong[] colsRight_5x5 = [col_0_right_5x5, col_1_right_5x5, col_2_right_5x5, col_3_right_5x5];
 
 
 
 
-        // ################
-        // # Rows for 6x6 #
-        // ################
-        private readonly static ulong row_0_6x6 = 0x3f;
-        private readonly static ulong row_0_below_6x6 = 0x3f3f3f3f3f00;
+        //// ################
+        //// # Rows for 6x6 #
+        //// ################
+        //private readonly static ulong row_0_6x6 = 0x3f;
+        //private readonly static ulong row_0_below_6x6 = 0x3f3f3f3f3f00;
 
-        private readonly static ulong row_1_6x6 = 0x3f00;
-        private readonly static ulong row_1_below_6x6 = 0x3f3f3f3f0000;
+        //private readonly static ulong row_1_6x6 = 0x3f00;
+        //private readonly static ulong row_1_below_6x6 = 0x3f3f3f3f0000;
 
-        private readonly static ulong row_2_6x6 = 0x3f0000;
-        private readonly static ulong row_2_below_6x6 = 0x3f3f3f000000;
+        //private readonly static ulong row_2_6x6 = 0x3f0000;
+        //private readonly static ulong row_2_below_6x6 = 0x3f3f3f000000;
 
-        private readonly static ulong row_3_6x6 = 0x3f000000;
-        private readonly static ulong row_3_below_6x6 = 0x3f3f00000000;
+        //private readonly static ulong row_3_6x6 = 0x3f000000;
+        //private readonly static ulong row_3_below_6x6 = 0x3f3f00000000;
 
-        private readonly static ulong row_4_6x6 = 0x3f00000000;
-        private readonly static ulong row_4_below_6x6 = 0x3f0000000000;
+        //private readonly static ulong row_4_6x6 = 0x3f00000000;
+        //private readonly static ulong row_4_below_6x6 = 0x3f0000000000;
 
-        private readonly static ulong row_5_6x6 = 0x3f0000000000;
+        //private readonly static ulong row_5_6x6 = 0x3f0000000000;
 
 
 
-        // ###################
-        // # Columns for 6x6 #
-        // ###################
-        private readonly static ulong col_0_6x6 = 0x10101010101;
-        private readonly static ulong col_0_right_6x6 = 0x3e3e3e3e3e3e;
+        //// ###################
+        //// # Columns for 6x6 #
+        //// ###################
+        //private readonly static ulong col_0_6x6 = 0x10101010101;
+        //private readonly static ulong col_0_right_6x6 = 0x3e3e3e3e3e3e;
 
-        private readonly static ulong col_1_6x6 = 0x20202020202;
-        private readonly static ulong col_1_right_6x6 = 0x3c3c3c3c3c3c;
+        //private readonly static ulong col_1_6x6 = 0x20202020202;
+        //private readonly static ulong col_1_right_6x6 = 0x3c3c3c3c3c3c;
 
-        private readonly static ulong col_2_6x6 = 0x40404040404;
-        private readonly static ulong col_2_right_6x6 = 0x383838383838;
+        //private readonly static ulong col_2_6x6 = 0x40404040404;
+        //private readonly static ulong col_2_right_6x6 = 0x383838383838;
 
-        private readonly static ulong col_3_6x6 = 0x80808080808;
-        private readonly static ulong col_3_right_6x6 = 0x303030303030;
+        //private readonly static ulong col_3_6x6 = 0x80808080808;
+        //private readonly static ulong col_3_right_6x6 = 0x303030303030;
 
-        private readonly static ulong col_4_6x6 = 0x101010101010;
-        private readonly static ulong col_4_right_6x6 = 0x202020202020;
+        //private readonly static ulong col_4_6x6 = 0x101010101010;
+        //private readonly static ulong col_4_right_6x6 = 0x202020202020;
 
-        private readonly static ulong col_5_6x6 = 0x202020202020;
+        //private readonly static ulong col_5_6x6 = 0x202020202020;
 
-        public static readonly ulong[] rows_6x6 = [row_0_6x6, row_1_6x6, row_2_6x6, row_3_6x6, row_4_6x6, row_5_6x6];
-        public static readonly ulong[] rowsBelow_6x6 = [row_0_below_6x6, row_1_below_6x6, row_2_below_6x6, row_3_below_6x6, row_4_below_6x6];
+        //public static readonly ulong[] rows_6x6 = [row_0_6x6, row_1_6x6, row_2_6x6, row_3_6x6, row_4_6x6, row_5_6x6];
+        //public static readonly ulong[] rowsBelow_6x6 = [row_0_below_6x6, row_1_below_6x6, row_2_below_6x6, row_3_below_6x6, row_4_below_6x6];
 
-        public static readonly ulong[] cols_6x6 = [col_0_6x6, col_1_6x6, col_2_6x6, col_3_6x6, col_4_6x6, col_5_6x6];
-        public static readonly ulong[] colsRight_6x6 = [col_0_right_6x6, col_1_right_6x6, col_2_right_6x6, col_3_right_6x6, col_4_right_6x6];
+        //public static readonly ulong[] cols_6x6 = [col_0_6x6, col_1_6x6, col_2_6x6, col_3_6x6, col_4_6x6, col_5_6x6];
+        //public static readonly ulong[] colsRight_6x6 = [col_0_right_6x6, col_1_right_6x6, col_2_right_6x6, col_3_right_6x6, col_4_right_6x6];
 
 
 
 
 
-        // ################
-        // # Rows for 7x7 #
-        // ################
-        private readonly static ulong[] rows_7x7_ = [
-            0x7f,
-            0x7f00,
-            0x7f0000,
-            0x7f000000,
-            0x7f00000000,
-            0x7f0000000000,
-            ];
+        //// ################
+        //// # Rows for 7x7 #
+        //// ################
+        //private readonly static ulong[] rows_7x7_ = [
+        //    0x7f,
+        //    0x7f00,
+        //    0x7f0000,
+        //    0x7f000000,
+        //    0x7f00000000,
+        //    0x7f0000000000,
+        //    ];
 
-        private readonly static ulong row_0_7x7 = 0x7f;
-        private readonly static ulong row_0_below_7x7 = 0x7f7f7f7f7f7f00;
+        //private readonly static ulong row_0_7x7 = 0x7f;
+        //private readonly static ulong row_0_below_7x7 = 0x7f7f7f7f7f7f00;
 
-        private readonly static ulong row_1_7x7 = 0x7f00;
-        private readonly static ulong row_1_below_7x7 = 0x7f7f7f7f7f0000;
+        //private readonly static ulong row_1_7x7 = 0x7f00;
+        //private readonly static ulong row_1_below_7x7 = 0x7f7f7f7f7f0000;
 
-        private readonly static ulong row_2_7x7 = 0x7f0000;
-        private readonly static ulong row_2_below_7x7 = 0x7f7f7f7f000000;
+        //private readonly static ulong row_2_7x7 = 0x7f0000;
+        //private readonly static ulong row_2_below_7x7 = 0x7f7f7f7f000000;
 
-        private readonly static ulong row_3_7x7 = 0x7f000000;
-        private readonly static ulong row_3_below_7x7 = 0x7f7f7f00000000;
+        //private readonly static ulong row_3_7x7 = 0x7f000000;
+        //private readonly static ulong row_3_below_7x7 = 0x7f7f7f00000000;
 
-        private readonly static ulong row_4_7x7 = 0x7f00000000;
-        private readonly static ulong row_4_below_7x7 = 0x7f7f0000000000;
+        //private readonly static ulong row_4_7x7 = 0x7f00000000;
+        //private readonly static ulong row_4_below_7x7 = 0x7f7f0000000000;
 
-        private readonly static ulong row_5_7x7 = 0x7f0000000000;
-        private readonly static ulong row_5_below_7x7 = 0x7f000000000000;
+        //private readonly static ulong row_5_7x7 = 0x7f0000000000;
+        //private readonly static ulong row_5_below_7x7 = 0x7f000000000000;
 
-        private readonly static ulong row_6_7x7 = 0x7f000000000000;
+        //private readonly static ulong row_6_7x7 = 0x7f000000000000;
 
 
-        // ###################
-        // # Columns for 7x7 #
-        // ###################
-        private readonly static ulong col_0_7x7 = 0x1010101010101;
-        private readonly static ulong col_0_right_7x7 = 0x7e7e7e7e7e7e7e;
+        //// ###################
+        //// # Columns for 7x7 #
+        //// ###################
+        //private readonly static ulong col_0_7x7 = 0x1010101010101;
+        //private readonly static ulong col_0_right_7x7 = 0x7e7e7e7e7e7e7e;
 
-        private readonly static ulong col_1_7x7 = 0x2020202020202;
-        private readonly static ulong col_1_right_7x7 = 0x7c7c7c7c7c7c7c;
+        //private readonly static ulong col_1_7x7 = 0x2020202020202;
+        //private readonly static ulong col_1_right_7x7 = 0x7c7c7c7c7c7c7c;
 
-        private readonly static ulong col_2_7x7 = 0x4040404040404;
-        private readonly static ulong col_2_right_7x7 = 0x78787878787878;
+        //private readonly static ulong col_2_7x7 = 0x4040404040404;
+        //private readonly static ulong col_2_right_7x7 = 0x78787878787878;
 
-        private readonly static ulong col_3_7x7 = 0x8080808080808;
-        private readonly static ulong col_3_right_7x7 = 0x70707070707070;
+        //private readonly static ulong col_3_7x7 = 0x8080808080808;
+        //private readonly static ulong col_3_right_7x7 = 0x70707070707070;
 
-        private readonly static ulong col_4_7x7 = 0x10101010101010;
-        private readonly static ulong col_4_right_7x7 = 0x60606060606060;
+        //private readonly static ulong col_4_7x7 = 0x10101010101010;
+        //private readonly static ulong col_4_right_7x7 = 0x60606060606060;
 
-        private readonly static ulong col_5_7x7 = 0x20202020202020;
-        private readonly static ulong col_5_right_7x7 = 0x40404040404040;
+        //private readonly static ulong col_5_7x7 = 0x20202020202020;
+        //private readonly static ulong col_5_right_7x7 = 0x40404040404040;
 
-        private readonly static ulong col_6_7x7 = 0x40404040404040;
+        //private readonly static ulong col_6_7x7 = 0x40404040404040;
 
-        public static readonly ulong[] rows_7x7 = [row_0_7x7, row_1_7x7, row_2_7x7, row_3_7x7, row_4_7x7, row_5_7x7, row_6_7x7];
-        public static readonly ulong[] rowsBelow_7x7 = [row_0_below_7x7, row_1_below_7x7, row_2_below_7x7, row_3_below_7x7, row_4_below_7x7, row_5_below_7x7];
+        //public static readonly ulong[] rows_7x7 = [row_0_7x7, row_1_7x7, row_2_7x7, row_3_7x7, row_4_7x7, row_5_7x7, row_6_7x7];
+        //public static readonly ulong[] rowsBelow_7x7 = [row_0_below_7x7, row_1_below_7x7, row_2_below_7x7, row_3_below_7x7, row_4_below_7x7, row_5_below_7x7];
 
-        public static readonly ulong[] cols_7x7 = [col_0_7x7, col_1_7x7, col_2_7x7, col_3_7x7, col_4_7x7, col_5_7x7, col_6_7x7];
-        public static readonly ulong[] colsRight_7x7 = [col_0_right_7x7, col_1_right_7x7, col_2_right_7x7, col_3_right_7x7, col_4_right_7x7, col_5_right_7x7];
+        //public static readonly ulong[] cols_7x7 = [col_0_7x7, col_1_7x7, col_2_7x7, col_3_7x7, col_4_7x7, col_5_7x7, col_6_7x7];
+        //public static readonly ulong[] colsRight_7x7 = [col_0_right_7x7, col_1_right_7x7, col_2_right_7x7, col_3_right_7x7, col_4_right_7x7, col_5_right_7x7];
 
 
 
 
-        // ################
-        // # Rows for 8x8 #
-        // ################
-        private readonly static ulong row_0_8x8 = 0xff;
-        private readonly static ulong row_0_below_8x8 = 0xffffffffffffff00;
+        //// ################
+        //// # Rows for 8x8 #
+        //// ################
+        //private readonly static ulong row_0_8x8 = 0xff;
+        //private readonly static ulong row_0_below_8x8 = 0xffffffffffffff00;
 
-        private readonly static ulong row_1_8x8 = 0xff00;
-        private readonly static ulong row_1_below_8x8 = 0xffffffffffff0000;
+        //private readonly static ulong row_1_8x8 = 0xff00;
+        //private readonly static ulong row_1_below_8x8 = 0xffffffffffff0000;
 
-        private readonly static ulong row_2_8x8 = 0xff0000;
-        private readonly static ulong row_2_below_8x8 = 0xffffffffff000000;
+        //private readonly static ulong row_2_8x8 = 0xff0000;
+        //private readonly static ulong row_2_below_8x8 = 0xffffffffff000000;
 
-        private readonly static ulong row_3_8x8 = 0xff000000;
-        private readonly static ulong row_3_below_8x8 = 0xffffffff00000000;
+        //private readonly static ulong row_3_8x8 = 0xff000000;
+        //private readonly static ulong row_3_below_8x8 = 0xffffffff00000000;
 
-        private readonly static ulong row_4_8x8 = 0xff00000000;
-        private readonly static ulong row_4_below_8x8 = 0xffffff0000000000;
+        //private readonly static ulong row_4_8x8 = 0xff00000000;
+        //private readonly static ulong row_4_below_8x8 = 0xffffff0000000000;
 
-        private readonly static ulong row_5_8x8 = 0xff0000000000;
-        private readonly static ulong row_5_below_8x8 = 0xffff000000000000;
+        //private readonly static ulong row_5_8x8 = 0xff0000000000;
+        //private readonly static ulong row_5_below_8x8 = 0xffff000000000000;
 
-        private readonly static ulong row_6_8x8 = 0xff000000000000;
-        private readonly static ulong row_6_below_8x8 = 0xff00000000000000;
+        //private readonly static ulong row_6_8x8 = 0xff000000000000;
+        //private readonly static ulong row_6_below_8x8 = 0xff00000000000000;
 
-        private readonly static ulong row_7_8x8 = 0xff00000000000000;
+        //private readonly static ulong row_7_8x8 = 0xff00000000000000;
 
-        // ###################
-        // # Columns for 8x8 #
-        // ###################
-        private readonly static ulong col_0_8x8 = 0x101010101010101;
-        private readonly static ulong col_0_right_8x8 = 0xfefefefefefefefe;
+        //// ###################
+        //// # Columns for 8x8 #
+        //// ###################
+        //private readonly static ulong col_0_8x8 = 0x101010101010101;
+        //private readonly static ulong col_0_right_8x8 = 0xfefefefefefefefe;
 
-        private readonly static ulong col_1_8x8 = 0x202020202020202;
-        private readonly static ulong col_1_right_8x8 = 0xfcfcfcfcfcfcfcfc;
+        //private readonly static ulong col_1_8x8 = 0x202020202020202;
+        //private readonly static ulong col_1_right_8x8 = 0xfcfcfcfcfcfcfcfc;
 
-        private readonly static ulong col_2_8x8 = 0x404040404040404;
-        private readonly static ulong col_2_right_8x8 = 0xf8f8f8f8f8f8f8f8;
+        //private readonly static ulong col_2_8x8 = 0x404040404040404;
+        //private readonly static ulong col_2_right_8x8 = 0xf8f8f8f8f8f8f8f8;
 
-        private readonly static ulong col_3_8x8 = 0x808080808080808;
-        private readonly static ulong col_3_right_8x8 = 0xf0f0f0f0f0f0f0f0;
+        //private readonly static ulong col_3_8x8 = 0x808080808080808;
+        //private readonly static ulong col_3_right_8x8 = 0xf0f0f0f0f0f0f0f0;
 
-        private readonly static ulong col_4_8x8 = 0x1010101010101010;
-        private readonly static ulong col_4_right_8x8 = 0xe0e0e0e0e0e0e0e0;
+        //private readonly static ulong col_4_8x8 = 0x1010101010101010;
+        //private readonly static ulong col_4_right_8x8 = 0xe0e0e0e0e0e0e0e0;
 
-        private readonly static ulong col_5_8x8 = 0x2020202020202020;
-        private readonly static ulong col_5_right_8x8 = 0xc0c0c0c0c0c0c0c0;
+        //private readonly static ulong col_5_8x8 = 0x2020202020202020;
+        //private readonly static ulong col_5_right_8x8 = 0xc0c0c0c0c0c0c0c0;
 
-        private readonly static ulong col_6_8x8 = 0x4040404040404040;
-        private readonly static ulong col_6_right_8x8 = 0x8080808080808080;
+        //private readonly static ulong col_6_8x8 = 0x4040404040404040;
+        //private readonly static ulong col_6_right_8x8 = 0x8080808080808080;
 
-        private readonly static ulong col_7_8x8 = 0x8080808080808080;
+        //private readonly static ulong col_7_8x8 = 0x8080808080808080;
 
-        public static readonly ulong[] rows_8x8 = [row_0_8x8, row_1_8x8, row_2_8x8, row_3_8x8, row_4_8x8, row_5_8x8, row_6_8x8, row_7_8x8];
-        public static readonly ulong[] rowsBelow_8x8 = [row_0_below_8x8, row_1_below_8x8, row_2_below_8x8, row_3_below_8x8, row_4_below_8x8, row_5_below_8x8, row_6_below_8x8];
+        //public static readonly ulong[] rows_8x8 = [row_0_8x8, row_1_8x8, row_2_8x8, row_3_8x8, row_4_8x8, row_5_8x8, row_6_8x8, row_7_8x8];
+        //public static readonly ulong[] rowsBelow_8x8 = [row_0_below_8x8, row_1_below_8x8, row_2_below_8x8, row_3_below_8x8, row_4_below_8x8, row_5_below_8x8, row_6_below_8x8];
 
-        public static readonly ulong[] cols_8x8 = [col_0_8x8, col_1_8x8, col_2_8x8, col_3_8x8, col_4_8x8, col_5_8x8, col_6_8x8, col_7_8x8];
-        public static readonly ulong[] colsRight_8x8 = [col_0_right_8x8, col_1_right_8x8, col_2_right_8x8, col_3_right_8x8, col_4_right_8x8, col_5_right_8x8, col_6_right_8x8];
+        //public static readonly ulong[] cols_8x8 = [col_0_8x8, col_1_8x8, col_2_8x8, col_3_8x8, col_4_8x8, col_5_8x8, col_6_8x8, col_7_8x8];
+        //public static readonly ulong[] colsRight_8x8 = [col_0_right_8x8, col_1_right_8x8, col_2_right_8x8, col_3_right_8x8, col_4_right_8x8, col_5_right_8x8, col_6_right_8x8];
 
 
 
@@ -535,67 +646,44 @@ namespace Primary_Puzzle_Solver
 
         // Deletes empty rows and columns and shifts the remaining up and left
         // Note: This removes empty rows and columns BETWEEN the board too
-        public static ulong ShiftAndRemoveEmpty(ulong bitBoard, int size)
+        
+        
+        
+        /// <summary>
+        /// This currently doesn't work but that's ok because we aren't using it at the moment.
+        /// Loop over each row and removes any empty rows by shifting everything to below the empty row.
+        /// 
+        /// </summary>
+        /// <param name="bitBoard"></param>
+        /// <param name="size"></param>
+        /// <returns></returns>
+        public static ulong ShiftAndRemoveEmpty(ulong bitBoard)
         {
-            ulong[] rows = new ulong[size];
-            ulong[] rowsBelow = new ulong[size - 1];
-            ulong[] cols = new ulong[size];
-            ulong[] colsRight = new ulong[size - 1];
+            throw new NotImplementedException();
+            // These would have to be recreated as static arrays 
+            //ulong[] rows = new ulong[8];
+            //ulong[] rowsBelow = new ulong[size - 1];
+            //ulong[] cols = new ulong[size];
+            //ulong[] colsRight = new ulong[size - 1];
 
-            switch (size)
-            {
-                case 1:
-                    //rows = rows_1x1;
-                    //cols = cols_1x1;
-                    break;
-                case 2:
-                    break;
-                case 3:
-                    break;
-                case 4:
-                    break;
-                case 5:
-                    break;
-                case 6:
-                    rows = rows_6x6;
-                    rowsBelow = rowsBelow_6x6;
-                    cols = cols_6x6;
-                    colsRight = colsRight_6x6;
-                    break;
-                case 7:
-                    rows = rows_7x7;
-                    rowsBelow = rowsBelow_7x7;
-                    cols = cols_7x7;
-                    colsRight = colsRight_7x7;
-                    break;
-                case 8:
-                    rows = rows_8x8;
-                    rowsBelow = rowsBelow_8x8;
-                    cols = cols_8x8;
-                    colsRight = colsRight_8x8;
-                    break;
+            
+            //for (int i = 0; i < rows.Length; i++)
+            //{
+            //    while ((bitBoard & rows[i]) == 0 && (bitBoard & rowsBelow[i]) != 0)
+            //    {
+            //        bitBoard = (bitBoard & rowsBelow[i]) >> 8 | (bitBoard & ~rowsBelow[i]);
+            //    }
+            //}
 
-                default:
-                    break;
-            }
+            //for (int i = 0; i < cols.Length - 1; i++)
+            //{
+            //    while ((bitBoard & cols[i]) == 0 && (bitBoard & colsRight[i]) != 0)
+            //    {
+            //        bitBoard = (bitBoard & colsRight[i]) >> 1 | (bitBoard & ~colsRight[i]);
+            //    }
+            //}
 
-            for (int i = 0; i < rows.Length; i++)
-            {
-                while ((bitBoard & rows[i]) == 0 && (bitBoard & rowsBelow[i]) != 0)
-                {
-                    bitBoard = (bitBoard & rowsBelow[i]) >> 8 | (bitBoard & ~rowsBelow[i]);
-                }
-            }
-
-            for (int i = 0; i < cols.Length - 1; i++)
-            {
-                while ((bitBoard & cols[i]) == 0 && (bitBoard & colsRight[i]) != 0)
-                {
-                    bitBoard = (bitBoard & colsRight[i]) >> 1 | (bitBoard & ~colsRight[i]);
-                }
-            }
-
-            return bitBoard;
+            //return bitBoard;
         }
 
 
@@ -634,17 +722,17 @@ namespace Primary_Puzzle_Solver
             ulong current;
 
             // Rotation 90
-            bitBoard = Rotate90CCFast_8x8(bitBoard);
+            bitBoard = Rotate90CC(bitBoard);
             current = ShiftUpAndLeft(bitBoard);
             minValue = Math.Min(minValue, current);
 
             // Rotation 180
-            bitBoard = Rotate90CCFast_8x8(bitBoard);
+            bitBoard = Rotate90CC(bitBoard);
             current = ShiftUpAndLeft(bitBoard);
             minValue = Math.Min(minValue, current);
 
             // Rotation 270
-            bitBoard = Rotate90CCFast_8x8(bitBoard);
+            bitBoard = Rotate90CC(bitBoard);
             current = ShiftUpAndLeft(bitBoard);
             minValue = Math.Min(minValue, current);
 
@@ -653,63 +741,21 @@ namespace Primary_Puzzle_Solver
             current = ShiftUpAndLeft(bitBoard);
             minValue = Math.Min(minValue, current);
 
-            bitBoard = Rotate90CCFast_8x8(bitBoard);
+            bitBoard = Rotate90CC(bitBoard);
             current = ShiftUpAndLeft(bitBoard);
             minValue = Math.Min(minValue, current);
 
-            bitBoard = Rotate90CCFast_8x8(bitBoard);
+            bitBoard = Rotate90CC(bitBoard);
             current = ShiftUpAndLeft(bitBoard);
             minValue = Math.Min(minValue, current);
 
-            bitBoard = Rotate90CCFast_8x8(bitBoard);
-            current = ShiftUpAndLeft(bitBoard);
-            minValue = Math.Min(minValue, current);
-
-            return minValue;
-        }
-
-
-        public static ulong CanonicalizeBitboard2(ulong bitBoard)
-        {
-            ulong minValue = ShiftUpAndLeft(bitBoard);
-            ulong current;
-
-            // Rotation 90
-            bitBoard = Rotate90CCFast_8x8(bitBoard);
-            current = ShiftUpAndLeft(bitBoard);
-            // x = minValue
-            // y = current
-            minValue = Math.Min(minValue, current);
-
-            // Rotation 180
-            bitBoard = Rotate90CCFast_8x8(bitBoard);
-            current = ShiftUpAndLeft(bitBoard);
-            minValue = Math.Min(minValue, current);
-
-            // Rotation 270
-            bitBoard = Rotate90CCFast_8x8(bitBoard);
-            current = ShiftUpAndLeft(bitBoard);
-            minValue = Math.Min(minValue, current);
-
-            // Flip and do all rotations again
-            bitBoard = FlipHorizontally(bitBoard);
-            current = ShiftUpAndLeft(bitBoard);
-            minValue = Math.Min(minValue, current);
-
-            bitBoard = Rotate90CCFast_8x8(bitBoard);
-            current = ShiftUpAndLeft(bitBoard);
-            minValue = Math.Min(minValue, current);
-
-            bitBoard = Rotate90CCFast_8x8(bitBoard);
-            current = ShiftUpAndLeft(bitBoard);
-            minValue = Math.Min(minValue, current);
-
-            bitBoard = Rotate90CCFast_8x8(bitBoard);
+            bitBoard = Rotate90CC(bitBoard);
             current = ShiftUpAndLeft(bitBoard);
             minValue = Math.Min(minValue, current);
 
             return minValue;
         }
+
 
         public static void TimeAction(Action action, ulong iterations)
         {
@@ -899,94 +945,95 @@ namespace Primary_Puzzle_Solver
         }
 
 
-        // These are used to mask out the GetPermutations method
-        private static ulong[] boardMask = new ulong[8] { 0x1, 0x303, 0x70707, 0xf0f0f0f, 0x1f1f1f1f1f, 0x3f3f3f3f3f3f, 0x7f7f7f7f7f7f7f, 0xffffffffffffffff };
+        //// These are used to mask out the GetPermutations method
+        ////private static ulong[] boardMask = new ulong[8] { 0x1, 0x303, 0x70707, 0xf0f0f0f, 0x1f1f1f1f1f, 0x3f3f3f3f3f3f, 0x7f7f7f7f7f7f7f, 0xffffffffffffffff };
 
-        /// <summary>
-        /// Given a bitboard, returns a mask of the where the rows and columns intersect
-        /// It shouldn't include the input
-        /// It should factor in the puzzle size
-        /// </summary>
-        /// <param name="bitboard"></param>
-        /// <returns></returns>
-        public static ulong GetMask(ulong bitboard, int size)
-        {
-            // Example input and size = 7
-            // 87960930238976
-            // 0 0 0 0 0 0 0 0
-            // 0 1 0 0 0 0 1 0
-            // 0 0 0 0 0 0 0 0
-            // 0 0 0 0 0 0 0 0
-            // 0 0 0 0 0 0 0 0
-            // 0 0 0 0 1 0 1 0
-            // 0 0 0 0 0 0 0 0
-            // 0 0 0 0 0 0 0 0
+        ///// <summary>
+        ///// Given a bitboard, returns a mask of the where the rows and columns intersect
+        ///// It shouldn't include the input
+        ///// It should factor in the puzzle size
+        ///// This was for tile slayer, no need for it here.
+        ///// </summary>
+        ///// <param name="bitboard"></param>
+        ///// <returns></returns>
+        //public static ulong GetMask(ulong bitboard, int size)
+        //{
+        //    // Example input and size = 7
+        //    // 87960930238976
+        //    // 0 0 0 0 0 0 0 0
+        //    // 0 1 0 0 0 0 1 0
+        //    // 0 0 0 0 0 0 0 0
+        //    // 0 0 0 0 0 0 0 0
+        //    // 0 0 0 0 0 0 0 0
+        //    // 0 0 0 0 1 0 1 0
+        //    // 0 0 0 0 0 0 0 0
+        //    // 0 0 0 0 0 0 0 0
 
-            // Example output
-            // 0 1 0 0 1 0 1 0
-            // 1 0 1 1 1 1 0 0
-            // 0 1 0 0 1 0 1 0
-            // 0 1 0 0 1 0 1 0
-            // 0 1 0 0 1 0 1 0
-            // 1 0 1 1 1 1 0 0
-            // 0 1 0 0 1 0 1 0
-            // 0 0 0 0 0 0 0 0
+        //    // Example output
+        //    // 0 1 0 0 1 0 1 0
+        //    // 1 0 1 1 1 1 0 0
+        //    // 0 1 0 0 1 0 1 0
+        //    // 0 1 0 0 1 0 1 0
+        //    // 0 1 0 0 1 0 1 0
+        //    // 1 0 1 1 1 1 0 0
+        //    // 0 1 0 0 1 0 1 0
+        //    // 0 0 0 0 0 0 0 0
 
-            (HashSet<int> x, HashSet<int> y) pairs = new();
-            pairs = FindXYofIndices(bitboard);
+        //    (HashSet<int> x, HashSet<int> y) pairs = new();
+        //    pairs = FindXYofIndices(bitboard);
 
-            ulong mask = 0UL;
-            ulong[] rows = new ulong[size];
-            ulong[] cols = new ulong[size];
-            switch (size)
-            {
-                case 1:
-                    rows = rows_1x1;
-                    cols = cols_1x1;
-                    break;
-                case 2:
-                    rows = rows_2x2;
-                    cols = cols_2x2;
-                    break;
-                case 3:
-                    rows = rows_3x3;
-                    cols = cols_3x3;
-                    break;
-                case 4:
-                    rows = rows_4x4;
-                    cols = cols_4x4;
-                    break;
-                case 5:
-                    rows = rows_5x5;
-                    cols = cols_5x5;
-                    break;
-                case 6:
-                    rows = rows_6x6;
-                    cols = cols_6x6;
-                    break;
-                case 7:
-                    rows = rows_7x7;
-                    cols = cols_7x7;
-                    break;
-                case 8:
-                    rows = rows_8x8;
-                    cols = cols_8x8;
-                    break;
-                default:
-                    break;
-            }
-            foreach (var x in pairs.x)
-            {
-                mask |= cols[x];
-            }
+        //    ulong mask = 0UL;
+        //    ulong[] rows = new ulong[size];
+        //    ulong[] cols = new ulong[size];
+        //    switch (size)
+        //    {
+        //        case 1:
+        //            rows = rows_1x1;
+        //            cols = cols_1x1;
+        //            break;
+        //        case 2:
+        //            rows = rows_2x2;
+        //            cols = cols_2x2;
+        //            break;
+        //        case 3:
+        //            rows = rows_3x3;
+        //            cols = cols_3x3;
+        //            break;
+        //        case 4:
+        //            rows = rows_4x4;
+        //            cols = cols_4x4;
+        //            break;
+        //        case 5:
+        //            rows = rows_5x5;
+        //            cols = cols_5x5;
+        //            break;
+        //        case 6:
+        //            rows = rows_6x6;
+        //            cols = cols_6x6;
+        //            break;
+        //        case 7:
+        //            rows = rows_7x7;
+        //            cols = cols_7x7;
+        //            break;
+        //        case 8:
+        //            rows = rows_8x8;
+        //            cols = cols_8x8;
+        //            break;
+        //        default:
+        //            break;
+        //    }
+        //    foreach (var x in pairs.x)
+        //    {
+        //        mask |= cols[x];
+        //    }
 
-            foreach (var y in pairs.y)
-            {
-                mask |= rows[y];
-            }
+        //    foreach (var y in pairs.y)
+        //    {
+        //        mask |= rows[y];
+        //    }
 
-            return (mask ^ bitboard) & boardMask[size];
-        }
+        //    return (mask ^ bitboard) & boardMask[size];
+        //}
 
 
 
@@ -1021,8 +1068,6 @@ namespace Primary_Puzzle_Solver
         /// <param name="processAction"></param>
         static void ProcessBinaryFileWrite(string filePath, Action<BinaryWriter> processAction)
         {
-            Console.WriteLine($"About to write to this path");
-            Console.WriteLine($"{filePath}");
             using (FileStream fileStream = new FileStream(filePath, FileMode.OpenOrCreate, FileAccess.Write))
             {
                 using (BinaryWriter binaryWriter = new BinaryWriter(fileStream))
@@ -1099,7 +1144,7 @@ namespace Primary_Puzzle_Solver
 
         /// <summary>
         /// Converts a bitboard of size 8 by 8 to a bitboard of size n by m.<br></br>
-        /// It does this by finding the dimensions using GetSize().<br></br>
+        /// It does this by finding the dimensions dynamically using GetSize().<br></br>
         /// And then shifting the bits so they are in the right place when called with Bitboard(wallData, width, height)<br></br>
         /// This will be used mostly to do a one-time conversion of the file<br></br>
         /// </summary>
@@ -1118,7 +1163,6 @@ namespace Primary_Puzzle_Solver
 
                 result |= rowBits;
             }
-
             return result;
         }
 

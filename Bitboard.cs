@@ -4,7 +4,12 @@ using System.Runtime.Intrinsics.X86;
 using System.Text;
 using static Primary_Puzzle_Solver.Util;
 
-
+// Current problems. We converted everything from working with 8x8 to nxm since
+// this allows us to use less storage space. But the cost is significately more
+// complicated code. To fix this, I'm revering back to doing things within an
+// 8x8 space and then as a last step, we can convert everything to an nxm.
+// We already have to method to convert which is Convert8x8toNxM()
+// This should make things a lot easier.
 [assembly: InternalsVisibleTo("PrimaryUnitTests")]
 namespace Primary_Puzzle_Solver
 {
@@ -25,9 +30,6 @@ namespace Primary_Puzzle_Solver
         public int Height { get { return height; } }
 
 
-        private bool isSquare = false;
-
-
         // These represent the state
         // They represent where a colored tile is
         // They are 0-indexed and start at the top left and go left to right, top to bottom ending at the bottom right corner
@@ -40,11 +42,14 @@ namespace Primary_Puzzle_Solver
         // A merge of the colored tiles.
         // Defined by: state = red | (yellow << 6) | (blue << 12)
         public int State { get { return GetState(); } }
-        
+
+
+        // Cache boundaries for each width/height combination
+        private static readonly Dictionary<(int width, int height), List<ulong>> BoundariesCache = new();
 
         // The boundaries of the edges. Used to determine if crossing the x axis
         // Since a lot of indices goes from 0 to n -1 within an x, y plane we need a way to know when we have moved to another row
-        private List<ulong> boundaries = new();
+        private readonly List<ulong> boundaries = new();
 
 
 
@@ -76,17 +81,64 @@ namespace Primary_Puzzle_Solver
             this.wallData = bitboard;
             this.width = width;
             this.height = height;
-            if (this.width == this.height)
-            {
-                this.isSquare = true;
-            }
 
             // The inital state is always in the upper left corner
             GetInitialState();
-            
+
             // Generates the boundaries since it varies based on the dimensions of the bitboard
-            GetBoundaries();
+            boundaries = GetCachedBoundaries(width, height);
         }
+
+        private static List<ulong> GetCachedBoundaries(int width, int height)
+        {
+            (int width, int height) key = (width, height);
+
+            if(BoundariesCache.TryGetValue(key, out var cachedBoundaries))
+            {
+                return cachedBoundaries;
+            }
+
+            var newBoundaries = new List<ulong>();
+
+
+            // Generate top row
+            ulong temp = 0UL;
+            for (int i = 0; i < width; i++)
+            {
+                temp |= 1UL << i;
+            }
+            newBoundaries.Add(temp);
+
+            // Generate right column
+            temp = 0UL;
+            for (int i = 0; i < height; i++)
+            {
+                temp |= 1UL << width * (i + 1) - 1;
+            }
+            newBoundaries.Add(temp);
+
+            // Generate bottom row
+            temp = 0UL;
+            for (int i = 0; i < width; i++)
+            {
+                temp |= 1UL << (width * (height - 1)) + i;
+            }
+            newBoundaries.Add(temp);
+
+            // Generate left column
+            temp = 0UL;
+            for (int i = 0; i < height; i++)
+            {
+                temp |= 1UL << i * width;
+            }
+            newBoundaries.Add(temp);
+
+            // Cache and return the new boundaries
+            BoundariesCache[key] = newBoundaries;
+            return newBoundaries;
+        }
+
+
 
 
 
@@ -127,7 +179,7 @@ namespace Primary_Puzzle_Solver
         {
             // Just in case
             CheckBounds(col, row);
-            
+
             int bitPosition = row * width + col;
             return (wallData & (1UL << bitPosition)) != 0;
         }
@@ -202,56 +254,6 @@ namespace Primary_Puzzle_Solver
 
 
 
-        #region Not needed
-        ///// <summary>
-        ///// Rotates a square bitboard 90� counter clockwise
-        ///// </summary>
-        //public void Rotate90CCSquare()
-        //{
-        //    ulong result = 0;
-        //    for (int i = 0; i < width; i++)
-        //    {
-        //        ulong mask = GenerateMask(width, i);
-        //        result |= Bmi2.X64.ParallelBitExtract(wallData, mask) << (width - 1 - i) * width;
-        //    }
-        //    wallData = result;
-        //}
-
-        //private ulong GenerateMask(int size, int row)
-        //{
-        //    ulong mask = 0;
-        //    for (int i = 0; i < size; i++)
-        //    {
-        //        mask |= 1UL << (i * size + row);
-        //    }
-
-        //    return mask;
-        //}
-
-
-
-
-        ///// <summary>
-        ///// Rotates a bitboard 180� by reversing all the bits
-        ///// </summary>
-        //public void Rotate180()
-        //{
-        //    ulong result = 0;
-        //    for (int i = 0; i < width * height; i++)
-        //    {
-        //        if ((wallData & (1UL << i)) != 0)
-        //        {
-        //            result |= 1UL << (width * height - 1 - i);
-        //        }
-        //    }
-
-        //    wallData = result;
-        //}
-        #endregion
-
-
-
-
         /// <summary>
         /// For a given board layout, finds where the starting tiles will go.
         /// Scanning left to right, top to bottom find the first empty cell and place a red tile.
@@ -284,74 +286,12 @@ namespace Primary_Puzzle_Solver
                 }
             }
 
-            // The following logic can probably be simplifed using a BFS/DFS
-
-            List<int> next = new List<int>();
-            // check if the cell right of Red is empty AND next cell is not on the next row
-            if(GetBitboardCell(red + 1) == false && (red + 1) % (width) != 0)
-            {
-                //Console.WriteLine("Case 1: Adding something to the right of red.");
-                next.Add(red + 1);
-                // Check right
-                if (GetBitboardCell(next[0] + 1) == false && (next[0] + 1) % (width) != 0)
-                {
-                    //Console.WriteLine($"Case 2: The cell to the right of the 2nd cell was empty and this cell is not currently on the right most edge already.");
-                    next.Add(next[0] + 1);
-                }
-                // Check under red
-                else if (GetBitboardCell(red + width) == false)
-                {
-                    //Console.WriteLine($"Case 3: Adding something under red.");
-                    next.Add(red + width);
-                }
-                // Check under yellow
-                else if (GetBitboardCell(next[0] + width) == false)
-                {
-                    //Console.WriteLine($"Case 4: Adding something under yellow.");
-                    next.Add(next[0] + width);
-                }
-                else
-                {
-                    //Console.WriteLine($"Case 5: There wasn't enough empty cells to fit all the colored tiles.");
-                    throw new Exception($"Case 5: There wasn't enough empty cells to fit all the colored tiles.");
-                }
-            }
-            else
-            {
-                // The cell right of red wasn't empty OR red it touching the right most edge.
-                //Console.WriteLine($"Case 6: Adding something under red.");
-                next.Add(red + width);
-                //Console.WriteLine($"Case 7a: The cell to the left of the 2nd cell was not a wall.");
-                if (GetBitboardCell(next[0] - 1) == false && (next[0] - 1) % width != 0 && (next[0] - 1) != red)
-                {
-                    next.Add(next[0] - 1);
-                }
-                // Check right
-                else if (GetBitboardCell(next[0] + 1) == false && (next[0] + 1) % (width) != 0)
-                {
-                    //Console.WriteLine($"Case 8: The cell to the right of the 2nd cell was empty and this cell is not currently on the right most edge already.");
-                    next.Add(next[0] + 1);
-                }
-                // Check down
-                else if (GetBitboardCell(next[0] + width) == false)
-                {
-                    //Console.WriteLine($"Case 9: There's nothing below, so add below.");
-                    next.Add(next[0] + width);
-                }
-                else
-                {
-                    //Console.WriteLine($"Case 10: There wasn't enough empty cells to fit all the colored tiles.");
-                    Console.WriteLine("This bitboard doesn't work.");
-                    Util.PrintBitboard(wallData, 4, 4);
-                    PrintBitboard();
-                    throw new Exception("Case 10: There wasn't enough empty cells to fit all the colored tiles.");
-                }
-            }
 
 
-            yellow = Math.Min(next[0], next[1]);
-            blue = Math.Max(next[0], next[1]);
+
         }
+
+
 
 
 
@@ -490,7 +430,7 @@ namespace Primary_Puzzle_Solver
             // Prevents us from reinitializing variables
             ulong boundary = 0UL;
             int moveDirection = 0;
-            
+
             // Set up initial conditions
             switch (direction)
             {
@@ -685,7 +625,7 @@ namespace Primary_Puzzle_Solver
                     return true;
                 }
             }
-            
+
             return false;
         }
 
@@ -720,8 +660,8 @@ namespace Primary_Puzzle_Solver
         public string PrintBoundaries()
         {
             var result = new StringBuilder();
-            
-            for(int boundary = 0; boundary < boundaries.Count; boundary++)
+
+            for (int boundary = 0; boundary < boundaries.Count; boundary++)
             {
                 switch (boundary)
                 {
@@ -818,7 +758,7 @@ namespace Primary_Puzzle_Solver
             Console.WriteLine("Initial state");
             bitboard.PrintBitboard();
 
-            foreach(var x in solution.Value)
+            foreach (var x in solution.Value)
             {
                 bitboard.MoveToNewState(x);
                 Console.Clear();

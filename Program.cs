@@ -1,5 +1,6 @@
 using System.Buffers.Text;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
@@ -45,8 +46,23 @@ namespace Primary_Puzzle_Solver
 
             //TimeAction(action, 1);
 
-            Bitboard bitboard = new Bitboard(18446744073709486341UL, 4);
+            //Bitboard bitboard = new Bitboard(18446744073709486341UL, 4);
 
+            
+
+            HashSet<ulong> set = new HashSet<ulong>();
+            for(ulong i = 0; i < 1; i++)
+            {
+                set.Add(i);
+            }
+            Console.WriteLine();
         }
+
+        public struct Hash()
+        {
+            public ulong value;
+        }
+
+
     }
 }
