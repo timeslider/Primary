@@ -259,7 +259,16 @@ namespace Primary_Puzzle_Solver
         /// </summary>
         public void GetInitialState()
         {
-            if((width * height) - BitOperations.PopCount(wallData) < 3)
+            // Create a mask for the actual board size
+            ulong boardMask = (1UL << (width * height)) - 1;
+
+            // Apply mask to wallData to only consider relevant bits
+            ulong maskedWallData = wallData & boardMask;
+
+            // Now count empty spaces within the actual board area
+            int emptySpaces = (width * height) - BitOperations.PopCount(maskedWallData);
+
+            if (emptySpaces < 3)
             {
                 throw new ArgumentOutOfRangeException("There needs to be at least 3 empty holes in the bitboard.");
             }
@@ -312,11 +321,9 @@ namespace Primary_Puzzle_Solver
                 // The cell right of red wasn't empty OR red it touching the right most edge.
                 //Console.WriteLine($"Case 6: Adding something under red.");
                 next.Add(red + width);
-                // The cell left to the previous is empty AND the previous cell wasn't already on the left most edge.
-                // And the left cell isn't red.
-                if (GetBitboardCell(next[0] - 1) == false && (next[0] - 1) % (width - 1) != 0 && (next[0] - 1) != red)
+                //Console.WriteLine($"Case 7a: The cell to the left of the 2nd cell was not a wall.");
+                if (GetBitboardCell(next[0] - 1) == false && (next[0] - 1) % width != 0 && (next[0] - 1) != red)
                 {
-                    //Console.WriteLine($"Case 7: The cell to the left of the 2nd cell was not a wall, this cell was not on the left most edge, and the left most cell was not red.");
                     next.Add(next[0] - 1);
                 }
                 // Check right
@@ -334,6 +341,9 @@ namespace Primary_Puzzle_Solver
                 else
                 {
                     //Console.WriteLine($"Case 10: There wasn't enough empty cells to fit all the colored tiles.");
+                    Console.WriteLine("This bitboard doesn't work.");
+                    Util.PrintBitboard(wallData, 4, 4);
+                    PrintBitboard();
                     throw new Exception("Case 10: There wasn't enough empty cells to fit all the colored tiles.");
                 }
             }

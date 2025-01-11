@@ -27,112 +27,25 @@ namespace Primary_Puzzle_Solver
 
             // Don't include based on width and height
 
-            Action action = () =>
-            {
-                string originals = @"C:\Users\Rober\Documents\Puzzles separated for Primary";
-                string goodOnes = @"C:\Users\Rober\Documents\Primary Puzzles Good Ones";
-
-                var binFiles = Directory.EnumerateFiles(originals, "*.bin");
-
-                foreach (var binFile in binFiles)
-                {
-                    if (binFile.Contains("4 x 4"))
-                    {
-                        LoopThroughDirectory(binFile);
-                    }
-                }
-            };
-
-            TimeAction(action, 1);
-
-            //Util.PrintBitboardRange(@"C:\Users\Rober\Documents\Puzzles separated for Primary\Bitboards 6 x 6.bin", 20000000, 100);
-
-            // Testing GetSize()
-            //Console.WriteLine(GetSize(16712796644520755199));
-
-
-
-
-
-
-            //for (int i = offset; i < offset + 10; i++)
+            //Action action = () =>
             //{
-            //    // Index from the file
-            //    Console.WriteLine($"i: {i}");
-            //    PrintBitboardFromFile(filePath, i);
+            //    string originals = @"C:\Users\rober\Documents\Primary Puzzles\Originals";
+            //    string goodOnes = @"C:\Users\rober\Documents\Primary Puzzles\Good ones";
 
-            //}
+            //    var binFiles = Directory.EnumerateFiles(originals, "*.bin");
 
-
-
-
-            //Bitboard bitboard = new Bitboard(~6765632493369UL, 8);
-            //var solutions = bitboard.Solutions().ToList();
-            //HashSet<int> states = new HashSet<int>();
-
-            //foreach (var solution in solutions)
-            //{
-            //    states.Add(solution.Key);
-            //    foreach(var directionList in solution.Value)
+            //    foreach (var binFile in binFiles)
             //    {
-
-            //        Console.Write(directionList.ToString() + " ");
+            //        if (binFile.Contains("4 x 4"))
+            //        {
+            //            GetStatistics(binFile);
+            //        }
             //    }
-            //    Console.WriteLine();
-            //}
+            //};
 
-            //bitboard.PrintSolution(solutions[^1], solutions[0].Key, new Bitboard(~6765632493369UL, 8));
-            //states.ToList().Sort();
-            //foreach(var state in states)
-            //{
-            //    Console.WriteLine(state);
-            //}
-            //Console.WriteLine();
+            //TimeAction(action, 1);
 
-
-
-            //Bitboard bitboard = new Bitboard(0UL, 1);
-
-
-            //ulong value = 7479;
-            //(int width, int height) dimensions = GetSize(~value);
-            ////(int width, int height) dimensions = (8, 8);
-            //value = Convert8x8ToNxM(~value);
-            //Console.WriteLine("Original");
-            //PrintBitboard(value, dimensions.width, dimensions.height);
-            //Console.WriteLine("Inverted");
-            //PrintBitboard(~value, dimensions.width, dimensions.height);
-
-            //// This is a test board will the work out the GetSize() on.
-            //// 18446744073709089220
-            //PrintBitboard(18446744073709089220, 8, 8);
-            //var x = GetSize(18446744073709089220);
-
-            //Console.WriteLine($"Width: {x.Width}, Height: {x.Height}");
-
-            //Console.WriteLine(Convert8x8ToNxM(18446744073709089220));
-
-            //PrintBitboard(~29627UL, 6, 3);
-
-
-            //PrintBitboard(CreateColMask(3, 4), 4);
-            //Console.WriteLine();
-
-
-            //PrintBitboard(~18446744073709535470UL);
-            //Bitboard bitboard = new Bitboard(~18446744073709535470UL, 8);
-            //bitboard.PrintBitboard();
-
-            ////bitboard.SetState(4487);
-            ////bitboard.PrintBitboard();
-
-            ////bitboard.MoveToNewState(Bitboard.Direction.Down);
-            ////bitboard.PrintBitboard();
-
-            //var x = bitboard.Solutions().ToList();
-            //Console.Clear();
-            //bitboard.PrintSolution(x[^1], x[0].Key, new Bitboard(~18446744073709535470UL, 6));
-            ////InvertFile(filePath);
+            Bitboard bitboard = new Bitboard(18446744073709486341UL, 4);
 
         }
     }

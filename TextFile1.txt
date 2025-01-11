@@ -19,3 +19,26 @@ Bitboards 3 x 1.bin | Writing 1 = 1
 Bitboards 2 x 2.bin | Writing 1 = 2
 Bitboards 2 x 1.bin | Writing 1 = 1
 Bitboards 1 x 1.bin | Writing 1 = 1
+
+
+Bitboards 6 x 6.bin : 5 bytes
+Bitboards 6 x 5.bin : 4 bytes
+Bitboards 6 x 4.bin : 3 bytes
+Bitboards 6 x 3.bin : 3 bytes
+Bitboards 6 x 2.bin : 2 bytes
+Bitboards 6 x 1.bin : 1 bytes
+Bitboards 5 x 5.bin : 4 bytes
+Bitboards 5 x 4.bin : 3 bytes
+Bitboards 5 x 3.bin : 2 bytes
+Bitboards 5 x 2.bin : 2 bytes
+Bitboards 5 x 1.bin : 1 bytes
+Bitboards 4 x 4.bin : 2 bytes
+Bitboards 4 x 3.bin : 2 bytes
+Bitboards 4 x 2.bin : 1 bytes
+Bitboards 4 x 1.bin : 1 bytes
+Bitboards 3 x 3.bin : 2 bytes
+Bitboards 3 x 2.bin : 1 bytes
+Bitboards 3 x 1.bin : 1 bytes
+Bitboards 2 x 2.bin : 1 bytes
+Bitboards 2 x 1.bin : 1 bytes
+Bitboards 1 x 1.bin : 1 bytes

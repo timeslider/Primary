@@ -1149,8 +1149,8 @@ namespace Primary_Puzzle_Solver
                 int Height = 0;
                 ulong converted = 0UL;
                 int i = 0; // For a quick test
-                //while (reader.BaseStream.Position < reader.BaseStream.Length)
-                while (reader.BaseStream.Position < reader.BaseStream.Length && i < 1000)
+                while (reader.BaseStream.Position < reader.BaseStream.Length)
+                //while (reader.BaseStream.Position < reader.BaseStream.Length && i < 1000)
                 {
                     // For each one, get it's width and height
                     // Use the width and height as the key
@@ -1453,35 +1453,34 @@ namespace Primary_Puzzle_Solver
 
 
         /// <summary>
-        /// Loops through each ulong in file. Right now it works under the assumption that each bitboard is 8 bytes.
+        /// Loops through each bitboard in file. Finds how 
         /// It needs to working under a variable byte count using GetByteCount and the width and height from the filename.
-        /// I'm not sure why the total is so high. It should 956 but it's 21000 something. Are we double counting???
         /// </summary>
         /// <param name="filePath">The name of the file we are processing</param>
-        public static void LoopThroughDirectory(string filePath)
+        public static void GetStatistics(string filePath)
         {
             ProcessBinaryFileRead(filePath, reader =>
             {
-                int totalSolutions = 0;
-                int minSolutions = int.MaxValue;
-                int maxSolutions = 0;
-
-                Dictionary<int, List<Bitboard.Direction>> solutions = new();
+                Console.WriteLine($"The filePath we are processing right now is {filePath}");
+                (int width, int height) dimensions = FilePathToDimensions(filePath);
+                int byteCount = GetByteCount(dimensions.width, dimensions.height);
+                int solutions;
                 Bitboard bitboard;
                 Dictionary<int, int> solutionCount = new Dictionary<int, int>();
                 while (reader.BaseStream.Position < reader.BaseStream.Length)
                 {
-                    ulong value = BytesToUlong(reader.ReadBytes(8));
-                    bitboard = new Bitboard(value, 8);
-                    //PrintBitboard(value, 8, 8);
-                    solutions = bitboard.Solutions();
-                    if (solutionCount.ContainsKey(solutions.Count) == false)
+
+                    ulong value = BytesToUlong(reader.ReadBytes(byteCount));
+                    PrintBitboard(~value, dimensions.width, dimensions.height);
+                    bitboard = new Bitboard(~value, dimensions.width, dimensions.height);
+                    solutions = bitboard.Solutions().Count;
+                    if (solutionCount.ContainsKey(solutions) == false)
                     {
-                        solutionCount[solutions.Count] = 1;
+                        solutionCount[solutions] = 1;
                     }
                     else
                     {
-                        solutionCount[solutions.Count] += 1;
+                        solutionCount[solutions] += 1;
                     }
                 }
 
@@ -1492,10 +1491,10 @@ namespace Primary_Puzzle_Solver
 
                 foreach (var solution in solutionCount)
                 {
-                    stringBuilder.AppendLine(solution.Key + " " + solution.Value);
+                    stringBuilder.AppendLine(solution.Key + " | " + solution.Value);
                 }
                 // @"C:\Users\Rober\Documents\Solution Counts\"
-                using (FileStream fileStream = new FileStream($@"C:\Users\Rober\Documents\Solution Counts\4 x 4.txt", FileMode.OpenOrCreate, FileAccess.Write))
+                using (FileStream fileStream = new FileStream($@"C:\Users\Rober\Documents\Solution Counts\{dimensions.width} x {dimensions.height}.txt", FileMode.OpenOrCreate, FileAccess.Write))
                 {
                     using (StreamWriter writer = new StreamWriter(fileStream))
                     {
@@ -1532,6 +1531,20 @@ namespace Primary_Puzzle_Solver
         {
 
             throw new NotImplementedException();
+        }
+
+
+        /// <summary>
+        /// The filePath is always Bitboards n x m.bit<br></br>
+        /// n and m fall on the 10th and 14th character
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <returns></returns>
+        public static (int width, int height) FilePathToDimensions(string filePath)
+        {
+            string fileName = Path.GetFileName(filePath);
+
+            return ((int)char.GetNumericValue(fileName.ElementAt(10)), (int)char.GetNumericValue(fileName.ElementAt(14)));
         }
     }
 }
