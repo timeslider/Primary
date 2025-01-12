@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.X86;
@@ -45,7 +46,7 @@ namespace Primary_Puzzle_Solver
 
 
         // Cache boundaries for each width/height combination
-        private static readonly Dictionary<(int width, int height), List<ulong>> BoundariesCache = new();
+        private static readonly ConcurrentDictionary<(int width, int height), List<ulong>> BoundariesCache = new();
 
         // The boundaries of the edges. Used to determine if crossing the x axis
         // Since a lot of indices goes from 0 to n -1 within an x, y plane we need a way to know when we have moved to another row
@@ -93,7 +94,7 @@ namespace Primary_Puzzle_Solver
         {
             (int width, int height) key = (width, height);
 
-            if(BoundariesCache.TryGetValue(key, out var cachedBoundaries))
+            if (BoundariesCache.TryGetValue(key, out var cachedBoundaries))
             {
                 return cachedBoundaries;
             }
@@ -254,6 +255,11 @@ namespace Primary_Puzzle_Solver
 
 
 
+        
+
+        private static readonly Direction[] FirstMoveDirections = { Direction.Right, Direction.Down };
+        private static readonly Direction[] SecondMoveDirections = { Direction.Left, Direction.Right, Direction.Down };
+
         /// <summary>
         /// For a given board layout, finds where the starting tiles will go.
         /// Scanning left to right, top to bottom find the first empty cell and place a red tile.
@@ -261,38 +267,101 @@ namespace Primary_Puzzle_Solver
         /// </summary>
         public void GetInitialState()
         {
-            // Create a mask for the actual board size
-            ulong boardMask = (1UL << (width * height)) - 1;
-
-            // Apply mask to wallData to only consider relevant bits
-            ulong maskedWallData = wallData & boardMask;
-
             // Now count empty spaces within the actual board area
-            int emptySpaces = (width * height) - BitOperations.PopCount(maskedWallData);
+            int emptySpaces = (width * height) - BitOperations.PopCount(wallData);
 
             if (emptySpaces < 3)
             {
                 throw new ArgumentOutOfRangeException("There needs to be at least 3 empty holes in the bitboard.");
             }
 
+            //// This doesn't seem to work in some instances
+            //red = BitOperations.TrailingZeroCount(~wallData);
+
             // Find red's index
-            for (int i = 0; i < 64; i++)
+            for (int i = 0; i < (width * height); i++)
             {
                 if (GetBitboardCell(i) == false)
                 {
-                    //Console.WriteLine($"Found red's index at {i}");
                     red = i;
                     break;
                 }
             }
 
+            List<int> next = new List<int>(2);
+
+            foreach(var direction in FirstMoveDirections)
+            {
+                if(CanMove(direction, red) > 0)
+                {
+                    next.Add(CanMove(direction, red));
+                    //break;
+                }
+            }
 
 
+            if (next.Count < 2)
+            {
+                foreach (var direction in SecondMoveDirections)
+                {
+                    if (CanMove(direction, next[0]) > 0)
+                    {
+                        next.Add(CanMove(direction, next[0]));
+                        break;
+                    }
+                }
+            }
+            
 
+            yellow = Math.Min(next[0], next[1]);
+            blue = Math.Max(next[0], next[1]);
         }
 
 
 
+        /// <summary>
+        /// Takes a direction and a current position
+        /// Returns a new position if it can move
+        /// Otherwise, it returns 0
+        /// </summary>
+        /// <param name="bitboard"></param>
+        /// <param name="direction"></param>
+        /// <param name="currentPosition"></param>
+        /// <returns></returns>
+        private int CanMove(Bitboard.Direction direction, int currentPosition)
+        {
+            int directionVector = 0;
+            int edge = 0;
+
+            switch (direction)
+            {
+                case Direction.Right:
+                    directionVector = 1;
+                    edge = 1;
+                    break;
+                case Direction.Left:
+                    directionVector = -1;
+                    //edge = -1;
+                    break;
+                case Direction.Down:
+                    directionVector = width;
+                    break;
+                default:
+                    break;
+            }
+
+            // Is a wall there?
+            if (GetBitboardCell(currentPosition + directionVector) == false)
+            {
+                //Console.WriteLine($"Passed Case 1: Empty postion {direction}");
+                if (direction == Direction.Down || (currentPosition + edge) % width != 0)
+                {
+                    //Console.WriteLine($"Passed Case 2: currentPosition not on edge");
+                    return currentPosition + directionVector;
+                }
+            }
+            return 0;
+        }
 
 
 
@@ -305,6 +374,11 @@ namespace Primary_Puzzle_Solver
             Console.WriteLine($"Yellow: {yellow}");
             Console.WriteLine($"Blue: {blue}");
         }
+
+
+
+
+
 
 
 
@@ -532,8 +606,8 @@ namespace Primary_Puzzle_Solver
         /// <exception cref="ArgumentOutOfRangeException"></exception>
         private void CheckBounds(int col, int row, bool zeroIndexed = true)
         {
-            int lowIndex = 0;
-            int highIndex = 0;
+            int lowIndex;
+            int highIndex;
             if (zeroIndexed == true)
             {
                 lowIndex = 0;
@@ -562,25 +636,9 @@ namespace Primary_Puzzle_Solver
             }
         }
 
-        //private void CheckBounds(int x, int y)
-        //{
-        //    if (x < 0)
-        //    {
-        //        throw new ArgumentOutOfRangeException($"Can't get bitboard of sizeX {Width} with value {x} because {x} is too small.");
-        //    }
-        //    if (y < 0)
-        //    {
-        //        throw new ArgumentOutOfRangeException($"Can't get bitboard of sizeY {Height} with value {y} because {y} is too small.");
-        //    }
-        //    if (x >= Width)
-        //    {
-        //        throw new ArgumentOutOfRangeException($"Can't get bitboard of sizeX {Width} with value {x} because {x} is too large");
-        //    }
-        //    if (y >= Height)
-        //    {
-        //        throw new ArgumentOutOfRangeException($"Can't get bitboard of sizeY {Height} with value {y} because {y} is too large");
-        //    }
-        //}
+
+
+
         /// <summary>
         /// Accepts a bitboard with a single bit and returns its index
         /// </summary>
@@ -596,6 +654,18 @@ namespace Primary_Puzzle_Solver
             int row = bitPosition / width;
             int col = bitPosition % width;
             return row * width + col;
+        }
+
+
+
+
+        /// <summary>
+        /// Counts number of empty cells in a bitboard
+        /// We need to remove anything under a certain count
+        /// </summary>
+        public int CountHoles()
+        {
+            return (width * height) - BitOperations.PopCount(wallData);
         }
 
 
@@ -705,14 +775,23 @@ namespace Primary_Puzzle_Solver
         /// <returns>A dictionary of type int, list where int is a new state and list contains all the moves needed to go from the inital state to the new state</returns>
         public Dictionary<int, List<Direction>> Solutions()
         {
+            // Stores the states we have already visited
             var visited = new HashSet<int>();
+
+            // Stores the states we need to visit
             var queue = new Queue<(int state, List<Direction> path)>();
+
+            // The output. The int is a new state and the List is a list of directions
+            // If you start at the initial state and follow the directions, you'll end up at the new state
             Dictionary<int, List<Direction>> solutions = new Dictionary<int, List<Direction>>();
 
-            // Get initial state and add to structures
+            // Get initial state and add to data structures
             int initialState = GetState();
             queue.Enqueue((initialState, new List<Direction>()));
             visited.Add(initialState);
+
+            // I think I might not have to do this since yourself isn't a solution
+            // The List is empty and never added to
             solutions[initialState] = new List<Direction>();
 
             while (queue.Count > 0)

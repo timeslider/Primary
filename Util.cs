@@ -1047,7 +1047,7 @@ namespace Primary_Puzzle_Solver
         /// </summary>
         /// <param name="filePath"></param>
         /// <param name="processAction"></param>
-        static void ProcessBinaryFileRead(string filePath, Action<BinaryReader> processAction)
+        public static void ProcessBinaryFileRead(string filePath, Action<BinaryReader> processAction)
         {
             using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
             {
@@ -1066,7 +1066,7 @@ namespace Primary_Puzzle_Solver
         /// </summary>
         /// <param name="filePath"></param>
         /// <param name="processAction"></param>
-        static void ProcessBinaryFileWrite(string filePath, Action<BinaryWriter> processAction)
+        public static void ProcessBinaryFileWrite(string filePath, Action<BinaryWriter> processAction)
         {
             using (FileStream fileStream = new FileStream(filePath, FileMode.OpenOrCreate, FileAccess.Write))
             {

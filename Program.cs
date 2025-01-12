@@ -1,5 +1,6 @@
 using System.Buffers.Text;
 using System.Diagnostics;
+using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -24,6 +25,8 @@ namespace Primary_Puzzle_Solver
     {
         public static void Main()
         {
+
+
             // Now let's remove based on more critiera
 
             // Don't include based on width and height
@@ -47,22 +50,32 @@ namespace Primary_Puzzle_Solver
             //TimeAction(action, 1);
 
             //Bitboard bitboard = new Bitboard(18446744073709486341UL, 4);
+            //PrintBitboard(549791UL, 5, 6);
 
+            Bitboard bitboard = new Bitboard(549791UL, 5, 6);
             
+            bitboard = new Bitboard(532610UL, 5, 6);
 
-            HashSet<ulong> set = new HashSet<ulong>();
-            for(ulong i = 0; i < 1; i++)
-            {
-                set.Add(i);
-            }
-            Console.WriteLine();
+            Console.WriteLine(bitboard.CountHoles());
+
+            bitboard.PrintBitboard();
+
+
+
+
+            //    HashSet<ulong> set = new HashSet<ulong>();
+            //    for(ulong i = 0; i < 1; i++)
+            //    {
+            //        set.Add(i);
+            //    }
+            //    Console.WriteLine();
+            //}
+
+            //public struct Hash()
+            //{
+            //    public ulong value;
+            //}
+
         }
-
-        public struct Hash()
-        {
-            public ulong value;
-        }
-
-
     }
 }
