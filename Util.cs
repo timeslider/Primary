@@ -144,16 +144,16 @@ namespace Primary_Puzzle_Solver
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="bitBoard"></param>
+        /// <param name="bitboard"></param>
         /// <param name="width"></param>
         /// <param name="height"></param>
         /// <param name="invert"></param>
-        public static void PrintBitboard(ulong bitBoard, int width, int height, bool invert = false)
+        public static void PrintBitboard(ulong bitboard, int width, int height, bool invert = false)
         {
             StringBuilder sb = new StringBuilder();
 
             // Prints the puzzle ID so we always know which puzzle we are displaying
-            sb.Append(bitBoard + "\n");
+            sb.Append($"bitboard: {bitboard}, width: {width}, height: {height}\n");
 
             for (int row = 0; row < height; row++)
             {
@@ -161,7 +161,7 @@ namespace Primary_Puzzle_Solver
                 {
                     if (invert == true)
                     {
-                        if (GetBitboardCell(bitBoard, col, row, width) == true)
+                        if (GetBitboardCell(bitboard, col, row, width) == true)
                         {
                             sb.Append("- ");
                         }
@@ -172,7 +172,7 @@ namespace Primary_Puzzle_Solver
                     }
                     else
                     {
-                        if (GetBitboardCell(bitBoard, col, row, width) == true)
+                        if (GetBitboardCell(bitboard, col, row, width) == true)
                         {
                             sb.Append("1 ");
                         }
@@ -238,7 +238,7 @@ namespace Primary_Puzzle_Solver
 
 
 
-        // Rotates an 8x8 bitBoard 90 degrees counter clockwise
+        // Rotates an 8x8 bitboard 90 degrees counter clockwise
         public static ulong Rotate90CC(ulong bitBoard)
         {
             bitBoard =
@@ -669,21 +669,21 @@ namespace Primary_Puzzle_Solver
             
             //for (int i = 0; i < rows.Length; i++)
             //{
-            //    while ((bitBoard & rows[i]) == 0 && (bitBoard & rowsBelow[i]) != 0)
+            //    while ((bitboard & rows[i]) == 0 && (bitboard & rowsBelow[i]) != 0)
             //    {
-            //        bitBoard = (bitBoard & rowsBelow[i]) >> 8 | (bitBoard & ~rowsBelow[i]);
+            //        bitboard = (bitboard & rowsBelow[i]) >> 8 | (bitboard & ~rowsBelow[i]);
             //    }
             //}
 
             //for (int i = 0; i < cols.Length - 1; i++)
             //{
-            //    while ((bitBoard & cols[i]) == 0 && (bitBoard & colsRight[i]) != 0)
+            //    while ((bitboard & cols[i]) == 0 && (bitboard & colsRight[i]) != 0)
             //    {
-            //        bitBoard = (bitBoard & colsRight[i]) >> 1 | (bitBoard & ~colsRight[i]);
+            //        bitboard = (bitboard & colsRight[i]) >> 1 | (bitboard & ~colsRight[i]);
             //    }
             //}
 
-            //return bitBoard;
+            //return bitboard;
         }
 
 
@@ -710,10 +710,10 @@ namespace Primary_Puzzle_Solver
         }
 
         /// <summary>
-        /// Takes in a bitBoard and checks it against all 8 symmetries (4 rotations and their mirrors)<br></br>
+        /// Takes in a bitboard and checks it against all 8 symmetries (4 rotations and their mirrors)<br></br>
         /// Outputs the smallest one
         /// </summary>
-        /// <param name="bitBoard">The bitBoard to canonicalize</param>
+        /// <param name="bitBoard">The bitboard to canonicalize</param>
         /// <param name="verboseLogging">If true, output inforamtion about the process to the console for debugging purposes</param>
         /// <returns>Returns the min hash from the puzzle</returns>
         public static ulong CanonicalizeBitboard(ulong bitBoard)
@@ -1381,31 +1381,59 @@ namespace Primary_Puzzle_Solver
 
 
 
-        public static void InvertFile(string inputFilePath, string outputFilePath)
+        public static void InvertFile(string inputFilePath, string outputFilePath, int byteCount)
         {
-            List<ulong> bitboards = new List<ulong>();
+            if (byteCount < 1 || byteCount > 5)
+            {
+                throw new ArgumentException($"Byte count must be between 1 and 5, got {byteCount}");
+            }
+
+            List<ulong> values = new List<ulong>();
             ProcessBinaryFileRead(inputFilePath, reader =>
             {
-                if (reader.BaseStream.Length % 8 != 0)
+                if (reader.BaseStream.Length % byteCount != 0)
                 {
-                    throw new ArgumentException($"File length {reader.BaseStream.Length} is not a multiple of 8 bytes");
+                    throw new ArgumentException($"File length {reader.BaseStream.Length} is not a multiple of {byteCount} bytes");
                 }
 
                 while (reader.BaseStream.Position < reader.BaseStream.Length)
                 {
-                    bitboards.Add(~reader.ReadUInt64());
+                    values.Add(~ReadPartialUlong(reader, byteCount));
                 }
             });
 
-            bitboards.Sort();
+            values.Sort();
 
             ProcessBinaryFileWrite(outputFilePath, writer =>
             {
-                foreach (ulong bitboard in bitboards)
+                foreach (ulong value in values)
                 {
-                    writer.Write(bitboard);
+                    WritePartialUlong(writer, value, byteCount);
                 }
             });
+        }
+
+        private static ulong ReadPartialUlong(BinaryReader reader, int byteCount)
+        {
+            ulong result = 0;
+            for (int i = 0; i < byteCount; i++)
+            {
+                result |= (ulong)reader.ReadByte() << (i * 8);
+            }
+            return result;
+        }
+
+        private static void WritePartialUlong(BinaryWriter writer, ulong value, int byteCount)
+        {
+            // Create a mask for the specified number of bytes
+            ulong mask = (1UL << (byteCount * 8)) - 1;
+            // Apply mask to ensure we only write the relevant bytes
+            value &= mask;
+
+            for (int i = 0; i < byteCount; i++)
+            {
+                writer.Write((byte)(value >> (i * 8)));
+            }
         }
 
 
@@ -1442,9 +1470,9 @@ namespace Primary_Puzzle_Solver
                         break; // End of file reached
                     }
                     ulong value = reader.ReadUInt64();
-                    ulong convert = Convert8x8ToNxM(value);
+                    //ulong convert = Convert8x8ToNxM(value);
                     PrintBitboard(value, 8, 8);
-                    PrintBitboard(convert, 6, 6);
+                    //PrintBitboard(convert, 6, 6);
                 }
             });
         }
@@ -1590,5 +1618,128 @@ namespace Primary_Puzzle_Solver
 
             return ((int)char.GetNumericValue(fileName.ElementAt(10)), (int)char.GetNumericValue(fileName.ElementAt(14)));
         }
+
+
+
+
+        /// <summary>
+        /// Checks if the bitboard contains one continuous snake and no intersections.
+        /// </summary>
+        /// <param name="bitboard"></param>
+        /// <returns>True if bitboard contains an intersections</returns>
+        public static bool TwoByTwo(ulong bitboard)
+        {
+            ulong cube = 771;
+            for(int i = 0; i < 5;i++)
+            {
+                for(int j = 0; j < 5; j++)
+                {
+                    if ((bitboard & cube) == 0)
+                    {
+                        return true;
+                    }
+                    cube <<= 1;
+                }
+                cube <<= 3;
+            }
+
+            return false;
+
+            ulong threeWay = 1794; // Pointing up
+
+            for (int i = 0; i < 5; i++)
+            {
+                for (int j = 0; j < 4; j++)
+                {
+                    if ((bitboard & threeWay) == 0)
+                    {
+                        return true;
+                    }
+                    threeWay <<= 1;
+                }
+                threeWay <<= 4;
+            }
+
+
+
+
+            threeWay = 519; // Pointing down
+
+            for (int i = 0; i < 5; i++)
+            {
+                for (int j = 0; j < 4; j++)
+                {
+                    if ((bitboard & threeWay) == 0)
+                    {
+                        return true;
+                    }
+                    threeWay <<= 1;
+                }
+                threeWay <<= 4;
+            }
+
+            threeWay = 66305; // Pointing right
+
+            for (int i = 0; i < 4; i++)
+            {
+                for (int j = 0; j < 5; j++)
+                {
+                    if ((bitboard & threeWay) == 0)
+                    {
+                        return true;
+                    }
+                    threeWay <<= 1;
+                }
+                threeWay <<= 3;
+            }
+
+
+
+            threeWay = 131842; // Pointing left
+            for (int i = 0; i < 4; i++)
+            {
+                for (int j = 0; j < 5; j++)
+                {
+                    if ((bitboard & threeWay) == 0)
+                    {
+                        return true;
+                    }
+                    threeWay <<= 1;
+                }
+                threeWay <<= 3;
+            }
+
+            return false;
+        }
+
+        public static void SeparateInterestions(string inputFilePath, string outputFilePath)
+        {
+            List<ulong> values = new List<ulong>();
+            ProcessBinaryFileRead(inputFilePath, reader =>
+            {
+                if (reader.BaseStream.Length % 8 != 0)
+                {
+                    throw new ArgumentException($"File length {reader.BaseStream.Length} is not a multiple of {8} bytes");
+                }
+
+                while (reader.BaseStream.Position < reader.BaseStream.Length)
+                {
+                    ulong value = reader.ReadUInt64();
+                    if(TwoByTwo(value) == true)
+                    {
+                        values.Add(value);
+                    }
+                }
+            });
+
+            ProcessBinaryFileWrite(outputFilePath, writer =>
+            {
+                foreach(ulong value in values)
+                {
+                    writer.Write(value);
+                }
+            });
+        }
+
     }
 }

@@ -15,7 +15,7 @@ using static Primary_Puzzle_Solver.Util;
 namespace Primary_Puzzle_Solver
 {
     /// <summary>
-    /// Represents a bitboard of size x, y.
+    /// Represents a bitboard of size solutionsList, y.
     /// </summary>
     internal class Bitboard
     {
@@ -34,7 +34,7 @@ namespace Primary_Puzzle_Solver
         // These represent the state
         // They represent where a colored tile is
         // They are 0-indexed and start at the top left and go left to right, top to bottom ending at the bottom right corner
-        // They're eventually packed into 18-bit State variable where the first 6 bits are the red tile, the next 6 are yellow and so on 
+        // They're eventually packed into 18-bit State variable where the first 6 bits are the red tile, the colors 6 are yellow and so on 
         private int red = 0;
         private int yellow = 0;
         private int blue = 0;
@@ -48,8 +48,8 @@ namespace Primary_Puzzle_Solver
         // Cache boundaries for each width/height combination
         private static readonly ConcurrentDictionary<(int width, int height), List<ulong>> BoundariesCache = new();
 
-        // The boundaries of the edges. Used to determine if crossing the x axis
-        // Since a lot of indices goes from 0 to n -1 within an x, y plane we need a way to know when we have moved to another row
+        // The boundaries of the edges. Used to determine if crossing the solutionsList axis
+        // Since a lot of indices goes from 0 to n -1 within an solutionsList, y plane we need a way to know when we have moved to another row
         private readonly List<ulong> boundaries = new();
 
 
@@ -214,7 +214,7 @@ namespace Primary_Puzzle_Solver
             StringBuilder sb = new StringBuilder();
 
             // Prints puzzle info so we always know which puzzle we are displaying
-            sb.Append($"Puzzle: {wallData}, state: {State}, sizeX: {width}, sizeY: {height}\n");
+            sb.Append($"Puzzle: {wallData}, state: {State}, width: {width}, height: {height}\n");
 
             for (int row = 0; row < height; row++)
             {
@@ -255,11 +255,6 @@ namespace Primary_Puzzle_Solver
 
 
 
-        
-
-        private static readonly Direction[] FirstMoveDirections = { Direction.Right, Direction.Down };
-        private static readonly Direction[] SecondMoveDirections = { Direction.Left, Direction.Right, Direction.Down };
-
         /// <summary>
         /// For a given board layout, finds where the starting tiles will go.
         /// Scanning left to right, top to bottom find the first empty cell and place a red tile.
@@ -267,54 +262,71 @@ namespace Primary_Puzzle_Solver
         /// </summary>
         public void GetInitialState()
         {
-            // Now count empty spaces within the actual board area
-            int emptySpaces = (width * height) - BitOperations.PopCount(wallData);
-
-            if (emptySpaces < 3)
+            
+            if (GetEmptyCellCount() < 3)
             {
                 throw new ArgumentOutOfRangeException("There needs to be at least 3 empty holes in the bitboard.");
             }
 
-            //// This doesn't seem to work in some instances
-            //red = BitOperations.TrailingZeroCount(~wallData);
 
-            // Find red's index
-            for (int i = 0; i < (width * height); i++)
+            List<int> colors = new List<int>(3);
+            colors.Add(BitOperations.TrailingZeroCount(~wallData));
+
+            // Case 1: Move right
+            if(CanMove(Direction.Right, colors[0]) > 0)
             {
-                if (GetBitboardCell(i) == false)
+                colors.Add(CanMove(Direction.Right, colors[0]));
+                // Case 3: Move right
+                if(CanMove(Direction.Right, colors[1]) > 0)
                 {
-                    red = i;
-                    break;
+                    colors.Add(CanMove(Direction.Right, colors[1]));
+                }
+                else if (CanMove(Direction.Down, colors[0]) > 0)
+                {
+                    colors.Add(CanMove(Direction.Down, colors[0]));
+                }
+                // Case 4: Move down
+                else if (CanMove(Direction.Down, colors[1]) > 0)
+                {
+                    colors.Add(CanMove(Direction.Down, colors[1]));
+                }
+                else
+                {
+                    throw new Exception("Couldn't find 3 empty cells");
+                }
+            }
+            // Case 2: Move down
+            else if (CanMove(Direction.Down, colors[0]) > 0)
+            {
+                colors.Add(CanMove(Direction.Down, colors[0]));
+                // Case 5: Move left
+                if (CanMove(Direction.Left, colors[1]) > 0)
+                {
+                    colors.Add(CanMove(Direction.Left, colors[1]));
+                }
+                // Case 6: Move right
+                else if (CanMove(Direction.Right, colors[1]) > 0)
+                {
+                    colors.Add(CanMove(Direction.Right, colors[1]));
+                }
+                // Case 7: Move down
+                else if (CanMove(Direction.Down, colors[1]) > 0)
+                {
+                    colors.Add(CanMove(Direction.Down, colors[1]));
+                }
+                else
+                {
+                    throw new Exception("Couldn't find 3 empty cells");
                 }
             }
 
-            List<int> next = new List<int>(2);
-
-            foreach(var direction in FirstMoveDirections)
-            {
-                if(CanMove(direction, red) > 0)
-                {
-                    next.Add(CanMove(direction, red));
-                    //break;
-                }
-            }
-
-
-            if (next.Count < 2)
-            {
-                foreach (var direction in SecondMoveDirections)
-                {
-                    if (CanMove(direction, next[0]) > 0)
-                    {
-                        next.Add(CanMove(direction, next[0]));
-                        break;
-                    }
-                }
-            }
             
 
-            yellow = Math.Min(next[0], next[1]);
-            blue = Math.Max(next[0], next[1]);
+
+
+            red = colors[0];
+            yellow = Math.Min(colors[1], colors[2]);
+            blue = Math.Max(colors[1], colors[2]);
         }
 
 
@@ -328,39 +340,77 @@ namespace Primary_Puzzle_Solver
         /// <param name="direction"></param>
         /// <param name="currentPosition"></param>
         /// <returns></returns>
-        private int CanMove(Bitboard.Direction direction, int currentPosition)
+        public int CanMove(Direction direction, int currentPosition)
         {
-            int directionVector = 0;
+            int directionVector = 0; // Where you are going to land
             int edge = 0;
 
             switch (direction)
             {
                 case Direction.Right:
-                    directionVector = 1;
+                    directionVector = currentPosition + 1;
                     edge = 1;
                     break;
                 case Direction.Left:
-                    directionVector = -1;
-                    //edge = -1;
+                    directionVector = currentPosition - 1;
                     break;
                 case Direction.Down:
-                    directionVector = width;
+                    directionVector = currentPosition + width;
                     break;
                 default:
                     break;
             }
 
-            // Is a wall there?
-            if (GetBitboardCell(currentPosition + directionVector) == false)
+            // The colors position would be larger than the size of the board
+            if (directionVector > (width * height))
             {
-                //Console.WriteLine($"Passed Case 1: Empty postion {direction}");
-                if (direction == Direction.Down || (currentPosition + edge) % width != 0)
-                {
-                    //Console.WriteLine($"Passed Case 2: currentPosition not on edge");
-                    return currentPosition + directionVector;
-                }
+                return 0;
             }
-            return 0;
+            
+            // The direction is either left or right and you already on the edge
+            if ((direction != Direction.Down && (currentPosition + edge) % width == 0))
+            {
+                return 0;
+            }
+            
+            // A wall is there
+            if (GetBitboardCell(directionVector) == true)
+            {
+                return 0;
+            }
+
+            // Red or Yellow already here
+            if (directionVector == red)
+            {
+                return 0;
+            }
+
+            return directionVector;
+        }
+
+
+
+        public int GetEmptyCellCount()
+        {
+            // Calculate total number of cells
+            int totalCells = width * height;
+            if (totalCells == 64)
+            {
+                // When using all 64 bits, no masking needed
+                return totalCells - BitOperations.PopCount(wallData);
+            }
+            else
+            {
+                // Create a mask that has 1s for all valid positions
+                // If totalCells is 12, we want 0000_0000_0000_1111_1111_1111
+                ulong mask = (1UL << totalCells) - 1;
+
+                // Apply mask to wallData to clear any bits beyond our range
+                ulong maskedWallData = wallData & mask;
+
+                // Calculate empty spaces: total cells minus the count of set bits in masked data
+                return totalCells - BitOperations.PopCount(maskedWallData);
+            }
         }
 
 
@@ -813,7 +863,7 @@ namespace Primary_Puzzle_Solver
                         queue.Enqueue((newState, newPath));
                     }
 
-                    // Reset to current state before trying next direction
+                    // Reset to current state before trying colors direction
                     SetState(currentState);
                 }
             }
@@ -824,27 +874,119 @@ namespace Primary_Puzzle_Solver
 
 
         /// <summary>
-        /// Prints an animation of the solution
+        /// Prints an animation of all the solutions<br></br>
+        /// Runs a long time on larger solutions<br></br>
         /// </summary>
-        /// <param name="solution">The ending state and list of directions</param>
-        /// <param name="startState">The starting state</param>
-        /// <param name="bitboard">I might just set the current bitboard to startState and remove this</param>
-        public void PrintSolution(KeyValuePair<int, List<Direction>> solution, int startState, Bitboard bitboard)
+        /// <param name="solutions">All the solutions</param>
+        public void PrintAllSolutions(Dictionary<int, List<Direction>> solutions)
         {
             // How fast the animation plays
-            int sleepTime = 50;
-            Console.Clear();
-            Console.WriteLine("Initial state");
-            bitboard.PrintBitboard();
+            int sleepTime = 1000;
+            var solutionsList = solutions.ToList();
+            SetState(solutionsList[0].Key);
+            PrintBitboard();
+            Thread.Sleep(sleepTime);
 
-            foreach (var x in solution.Value)
+            int i = 0;
+            foreach (var solution in solutionsList.Skip(1))
             {
-                bitboard.MoveToNewState(x);
+                SetState(solutionsList[0].Key);
                 Console.Clear();
-                Console.WriteLine(x);
-                bitboard.PrintBitboard();
+                Console.WriteLine($"Solution {i}");
+                PrintBitboard();
                 Thread.Sleep(sleepTime);
+                foreach (var direction in solution.Value)
+                {
+                    MoveToNewState(direction);
+                    Console.Clear();
+                    //Console.WriteLine(solutionsList);
+                    Console.WriteLine($"Solution {i}");
+                    PrintBitboard();
+                    Thread.Sleep(sleepTime);
+                }
+                i++;
             }
+        }
+
+
+
+
+        /// <summary>
+        /// Prints an animation of all the solutions<br></br>
+        /// Runs a long time on larger solutions<br></br>
+        /// </summary>
+        /// <param name="solutions">All the solutions</param>
+        public void PrintSolution(Dictionary<int, List<Direction>> solutions, int index)
+        {
+            // How fast the animation plays
+            int sleepTime = 2000;
+            var solutionsList = solutions.ToList();
+            
+            if(index > solutionsList.Count - 1)
+            {
+                throw new ArgumentOutOfRangeException("Pick a smaller index. This puzzle doesn't have that many solutions. It is advised to look at the solution dicationary.");
+            }
+
+            SetState(solutionsList[0].Key);
+            PrintBitboard();
+            Thread.Sleep(sleepTime);
+
+            int i = 1;
+            foreach (var direction in solutionsList[index].Value)
+            {
+                MoveToNewState(direction);
+                Console.Clear();
+                //Console.WriteLine(solutionsList);
+                Console.WriteLine($"Solution {index}: Step {i}/{solutionsList[index].Value.Count}");
+                Console.WriteLine(direction);
+                PrintBitboard();
+                Thread.Sleep(sleepTime);
+                i++;
+            }
+        }
+
+
+
+
+
+
+        // Things we need to remove
+        // RYB
+
+        // RY
+        //  B
+
+        // Stairs
+        // Example
+        // 1 1 1 R
+        // 1 1 Y B
+        // 1 0 0 0
+        // 0 0 0 0
+
+        // In the above example, the state RYB moves around a few times, but it can never be anything else. It always sticks together
+
+        // Empty boards
+        // R Y B 0 0
+        // 0 0 0 0 0
+        // 0 0 0 0 0
+        // 0 0 0 0 0
+        // 0 0 0 0 0
+
+
+
+
+        /// <summary>
+        /// Takes a solution dictionary and checks if they are all the same pattern.<br></br>
+        /// For example, on an empty 3x3, the red, yellow, and blue tiles would all be in a row.<br></br>
+        /// And they could only move down. All the solutions would be the tiles in a row.
+        /// </summary>
+        public bool SolutionSamePattern(Dictionary<int, List<Direction>>.KeyCollection states)
+        {
+            foreach(int state in states)
+            {
+
+            }
+            throw new NotImplementedException();
         }
     }
 }

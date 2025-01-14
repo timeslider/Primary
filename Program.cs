@@ -8,57 +8,167 @@ using System.Text.Json;
 using static Primary_Puzzle_Solver.Util;
 
 // Paths on home PC
-// @"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted 8 by 8.bin"
-// @"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted.bin"
-// @"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted 8 by 8 inverted.bin"
+// @"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted 8 by 8.bin";
+// @"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted.bin";
+// @"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted 8 by 8 inverted.bin";
+// @"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted 8 by 8 inverted reversed.bin";
+// @"C:\Users\rober\Documents\Primary Puzzles\No intersections\No intersections.bin"
 // @"C:\Users\rober\Documents\Primary Puzzles\Originals"
 // string originals = @"C:\Users\rober\Documents\Primary Puzzles\Originals";
 // string goodOnes = @"C:\Users\rober\Documents\Primary Puzzles\Good ones";
 
 // Paths on laptop
-// @"C:\Users\Rober\Documents\Puzzles Master List Canonical Sorted 8 by 8 inverted.bin"
-// @"C:\Users\Rober\Documents\Puzzles separated for Primary\Bitboards 6 x 6.bin"
-// @"C:\Users\Rober\Documents\Primary Puzzles Good Ones"
+// @"C:\Users\Rober\Documents\Puzzles Master List Canonical Sorted 8 by 8 inverted.bin";
+// @"C:\Users\Rober\Documents\Puzzles separated for Primary\Bitboards 6 x 6.bin";
+// @"C:\Users\Rober\Documents\Primary Puzzles Good Ones";
 namespace Primary_Puzzle_Solver
 {
+    // Current primary goal: Create a method to check if a bitboard is a hallway with no 3- or 4-way intersections
     class Program
     {
         public static void Main()
         {
+            // Check for 3-way intersections
+            // This bitboard has no intersections: 18446732828894229745
+            // It's one continues "hallway"
 
+
+            //SeparateInterestions(@"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted 8 by 8 inverted reversed.bin", @"C:\Users\rober\Documents\Primary Puzzles\No intersections\No intersections.bin");
+
+            //PrintBitboardRange(@"C:\Users\rober\Documents\Primary Puzzles\No intersections\No intersections.bin", 0, 200);
 
             // Now let's remove based on more critiera
 
             // Don't include based on width and height
 
+            // We need to invert the Originals
+
+            // How to invert bitboards in nxm
+            //string originals = @"C:\Users\rober\Documents\Primary Puzzles\Originals";
+            //var binFiles = Directory.EnumerateFiles(originals, "*.bin");
+            //foreach (var binFile in binFiles)
+            //{
+            //    (int width, int height) dimensions = FilePathToDimensions(binFile);
+            //    int byteCount = GetByteCount(dimensions.width, dimensions.height);
+            //    InvertFile(binFile, originals + @$"\Bitboards {dimensions.width} x {dimensions.height} inverted.bin", byteCount);
+            //}
+
+
+
             //Action action = () =>
             //{
-            //    string originals = @"C:\Users\rober\Documents\Primary Puzzles\Originals";
+            //    string originals = @"C:\Users\rober\Documents\Primary Puzzles\Originals\Inverted";
             //    string goodOnes = @"C:\Users\rober\Documents\Primary Puzzles\Good ones";
 
             //    var binFiles = Directory.EnumerateFiles(originals, "*.bin");
-
+            //    int i = 0;
             //    foreach (var binFile in binFiles)
             //    {
-            //        if (binFile.Contains("4 x 4"))
+            //        Util.ProcessBinaryFileRead(binFile, reader =>
             //        {
-            //            GetStatistics(binFile);
-            //        }
+            //            (int width, int height) dimensions = FilePathToDimensions(binFile);
+            //            int byteCount = GetByteCount(dimensions.width, dimensions.height);
+            //            while (reader.BaseStream.Position < reader.BaseStream.Length && i < 1000)
+            //            {
+
+            //                byte[] bytes = reader.ReadBytes(byteCount);
+
+            //                //if(bytes.Length < 5)
+            //                //{
+            //                //    throw new EndOfStreamException();
+            //                //}
+            //                ulong value = 0;
+            //                for (int j = 0; j < byteCount; j++)
+            //                {
+            //                    value |= (ulong)bytes[j] << (8 * j);
+            //                }
+            //                try
+            //                {
+            //                    Console.WriteLine("--------");
+            //                    Bitboard bitboard = new Bitboard(value, dimensions.width, dimensions.height);
+            //                    PrintBitboard(value, dimensions.width, dimensions.height);
+            //                    bitboard.PrintBitboard();
+            //                    Console.WriteLine($"Empty cell count: {bitboard.GetEmptyCellCount()}");
+            //                    Console.WriteLine($"Solution count: {bitboard.Solutions().Count}");
+            //                    Console.WriteLine("\n\n");
+            //                }
+            //                catch (Exception e)
+            //                {
+            //                    Console.WriteLine($"This is a bad board because: {e.Message}");
+            //                    PrintBitboard(value, dimensions.width, dimensions.height);
+            //                    Console.WriteLine("\n\n");
+            //                };
+            //                i++;
+            //            }
+            //        });
+
             //    }
             //};
 
             //TimeAction(action, 1);
 
+
+
+
+
+            //Action action = () =>
+            //{
+            //    string originals = @"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted 8 by 8 inverted reversed.bin";
+            //    //string goodOnes = @"C:\Users\rober\Documents\Primary Puzzles\Good ones";
+
+            //    int i = 0;
+            //    ProcessBinaryFileRead(originals, reader =>
+            //    {
+            //        while (reader.BaseStream.Position < reader.BaseStream.Length && i < 250)
+            //        {
+
+            //            ulong value = reader.ReadUInt64();
+            //            try
+            //            {
+            //                Console.WriteLine("--------");
+            //                Bitboard bitboard = new Bitboard(value, 8);
+            //                PrintBitboard(value, 8, 8);
+            //                bitboard.PrintBitboard();
+            //                Console.WriteLine($"Empty cell count: {bitboard.GetEmptyCellCount()}");
+            //                Console.WriteLine($"Solution count: {bitboard.Solutions().Count}");
+            //                Console.WriteLine($"Longest solution: {bitboard.Solutions().ToList()[^1].Value.Count}");
+            //                Console.WriteLine($"");
+            //                Console.WriteLine("\n\n");
+            //            }
+            //            catch (Exception e)
+            //            {
+            //                Console.WriteLine($"This is a bad board because: {e.Message}");
+            //                PrintBitboard(value, 8, 8);
+            //                Console.WriteLine("\n\n");
+            //            };
+            //            i++;
+            //        }
+            //    });
+            //};
+
+            //TimeAction(action, 1);
+
+
+
+
+
+
+
+
+            //Bitboard bitboard = new Bitboard(18446744073709548004UL, 8, 8);
+            //Dictionary<int, List<Bitboard.Direction>> x = bitboard.Solutions();
+
+            //bitboard.PrintSolution(x, 10);
+
             //Bitboard bitboard = new Bitboard(18446744073709486341UL, 4);
             //PrintBitboard(549791UL, 5, 6);
+            //PrintBitboard(0x1f4, 3, 3);
+            //Bitboard bitboard = new Bitboard(0xfffffffffff3ffff, 8);
+            //bitboard.PrintBitboard();
 
-            Bitboard bitboard = new Bitboard(549791UL, 5, 6);
-            
-            bitboard = new Bitboard(532610UL, 5, 6);
+            //Dictionary<int, List<Bitboard.Direction>>.KeyCollection solutions = bitboard.Solutions().Keys;
 
-            Console.WriteLine(bitboard.CountHoles());
-
-            bitboard.PrintBitboard();
+            //Console.WriteLine(  );
 
 
 

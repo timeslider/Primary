@@ -184,7 +184,7 @@
 //            return visited.ToDictionary(puzzle => puzzle, puzzle => puzzle.Moves);
 //        }
 
-//        public static void PrintSolution(List<MoveDirection> solution)
+//        public static void PrintAllSolutions(List<MoveDirection> solution)
 //        {
 //            StringBuilder output = new StringBuilder();
 
