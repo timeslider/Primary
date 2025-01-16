@@ -32,8 +32,33 @@ namespace Primary_Puzzle_Solver
             // This bitboard has no intersections: 18446732828894229745
             // It's one continues "hallway"
 
+            // PC Version
+            //SeparatePuzzles(@"C:\Users\Rober\Documents\Puzzles Master List Canonical Sorted 8 by 8 inverted reversed.bin", @"C:\Users\rober\Documents\Primary Puzzles\No intersections\No intersections.bin");
 
-            //SeparateInterestions(@"C:\Users\rober\Documents\Polyomino List\Original Data Don't Delete\Puzzles Master List Canonical Sorted 8 by 8 inverted reversed.bin", @"C:\Users\rober\Documents\Primary Puzzles\No intersections\No intersections.bin");
+            // Laptop Version
+            //SeparatePuzzles(@"C:\Users\Rober\Documents\Puzzles Master List Canonical Sorted 8 by 8 inverted reversed.bin", @"C:\Users\Rober\Documents\No intersections.bin");
+
+            Action myAction = () =>
+            {
+                List<ulong> polyominoes = new List<ulong>();
+                Parallel.For(0, 68719476, i =>
+                {
+                    ulong u = (ulong)(i + (-(long.MinValue + 1))) + 1;
+                    if (PolyominoChecker(u) == false)
+                    {
+                        polyominoes.Add(u);
+                    }
+                });
+                Console.WriteLine(polyominoes.Count);
+            };
+
+            TimeAction(myAction, 1);
+
+            //foreach (ulong polyomino in polyominoes)
+            //{
+            //    PrintBitboard(polyomino);
+            //}
+            //PuzzlesToExclude(0UL);
 
             //PrintBitboardRange(@"C:\Users\rober\Documents\Primary Puzzles\No intersections\No intersections.bin", 0, 200);
 

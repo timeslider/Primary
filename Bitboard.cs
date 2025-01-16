@@ -975,18 +975,6 @@ namespace Primary_Puzzle_Solver
 
 
 
-        /// <summary>
-        /// Takes a solution dictionary and checks if they are all the same pattern.<br></br>
-        /// For example, on an empty 3x3, the red, yellow, and blue tiles would all be in a row.<br></br>
-        /// And they could only move down. All the solutions would be the tiles in a row.
-        /// </summary>
-        public bool SolutionSamePattern(Dictionary<int, List<Direction>>.KeyCollection states)
-        {
-            foreach(int state in states)
-            {
-
-            }
-            throw new NotImplementedException();
-        }
+        
     }
 }

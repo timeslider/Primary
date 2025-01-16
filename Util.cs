@@ -646,9 +646,9 @@ namespace Primary_Puzzle_Solver
 
         // Deletes empty rows and columns and shifts the remaining up and left
         // Note: This removes empty rows and columns BETWEEN the board too
-        
-        
-        
+
+
+
         /// <summary>
         /// This currently doesn't work but that's ok because we aren't using it at the moment.
         /// Loop over each row and removes any empty rows by shifting everything to below the empty row.
@@ -666,7 +666,7 @@ namespace Primary_Puzzle_Solver
             //ulong[] cols = new ulong[size];
             //ulong[] colsRight = new ulong[size - 1];
 
-            
+
             //for (int i = 0; i < rows.Length; i++)
             //{
             //    while ((bitboard & rows[i]) == 0 && (bitboard & rowsBelow[i]) != 0)
@@ -1626,25 +1626,34 @@ namespace Primary_Puzzle_Solver
         /// Checks if the bitboard contains one continuous snake and no intersections.
         /// </summary>
         /// <param name="bitboard"></param>
-        /// <returns>True if bitboard contains an intersections</returns>
-        public static bool TwoByTwo(ulong bitboard)
+        /// <returns>The number of 2x2 regions it contains</returns>
+        public static int TwoByTwo(ulong bitboard)
         {
             ulong cube = 771;
-            for(int i = 0; i < 5;i++)
+            int count = 0;
+            for (int i = 0; i < 5; i++)
             {
-                for(int j = 0; j < 5; j++)
+                for (int j = 0; j < 5; j++)
                 {
                     if ((bitboard & cube) == 0)
                     {
-                        return true;
+                        count++;
                     }
                     cube <<= 1;
                 }
                 cube <<= 3;
             }
 
-            return false;
+            return count;
+        }
 
+        /// <summary>
+        /// Checks if bitboard contains a three-way intersection
+        /// </summary>
+        /// <param name="bitboard"></param>
+        /// <returns>true if it does; false if it doesn't</returns>
+        public static bool ThreeWayIntersection(ulong bitboard)
+        {
             ulong threeWay = 1794; // Pointing up
 
             for (int i = 0; i < 5; i++)
@@ -1712,9 +1721,95 @@ namespace Primary_Puzzle_Solver
             return false;
         }
 
-        public static void SeparateInterestions(string inputFilePath, string outputFilePath)
+        public static bool PuzzlesToExclude(ulong bitboard)
+        {
+            List<ulong> emptyGrids = [
+                // Empty n by m puzzles
+                // Example: This is a 6 by 3.
+                // 0 0 0 0 0 0
+                // 0 0 0 0 0 0
+                // 0 0 0 0 0 0
+
+                // Empty grids
+                0xfffffffffffffffe, //1 x 1
+                0xfffffffffffffffc, //2 x 1
+                0xfffffffffffffcfc, //2 x 2
+                0xfffffffffffffff8, //3 x 1
+                0xfffffffffffff8f8, //3 x 2
+                0xfffffffffff8f8f8, //3 x 3
+                0xfffffffffffffff0, //4 x 1
+                0xfffffffffffff0f0, //4 x 2
+                0xfffffffffff0f0f0, //4 x 3
+                0xfffffffff0f0f0f0, //4 x 4
+                0xffffffffffffffe0, //5 x 1
+                0xffffffffffffe0e0, //5 x 2
+                0xffffffffffe0e0e0, //5 x 3
+                0xffffffffe0e0e0e0, //5 x 4
+                0xffffffe0e0e0e0e0, //5 x 5
+                0xffffffffffffffc0, //6 x 1
+                0xffffffffffffc0c0, //6 x 2
+                0xffffffffffc0c0c0, //6 x 3
+                0xffffffffc0c0c0c0, //6 x 4
+                0xffffffc0c0c0c0c0, //6 x 5
+                0xffffc0c0c0c0c0c0, //6 x 6
+
+                ];
+
+            List<ulong> stairs = [
+                // inverted stairs: Makes sure these are the canonical ones
+                0xfffffffffffffcfd, // 2x2: default rotation
+                0xfffffffffffffcfe, // +90° rotation
+                0xfffffffffffffefc, // +90° rotation
+                0xfffffffffffffdfc, // +90° rotation
+
+                0xfffffffffff8f9fb, // 3x3
+                0xfffffffffff8fcfe, // +90° rotation
+                0xfffffffffffefcf8, // +90° rotation
+                0xfffffffffffbf9f8, // +90° rotation
+
+                0xfffffffff0f1f3f7, // 4x4
+                0xfffffffff0f8fcfe, // +90° rotation
+                0xfffffffffefcf8f0, // +90° rotation
+                0xfffffffff7f3f1f0, // +90° rotation
+
+                0xffffffe0e1e3e7ef, // 5x5
+                0xffffffe0f0f8fcfe, // +90° rotation
+                0xfffffffefcf8f0e0, // +90° rotation
+                0xffffffefe7e3e1e0, // +90° rotation
+
+                0xffffc0c1c3c7cfdf, // 6x6
+                0xffffc0e0f0f8fcfe, // +90° rotation
+                0xfffffefcf8f0e0c0, // +90° rotation
+                0xffffdfcfc7c3c1c0, // +90° rotation
+                ];
+
+
+            foreach (ulong puzzle in emptyGrids)
+            {
+                if (puzzle == bitboard)
+                {
+                    return true;
+                }
+            }
+
+            foreach (ulong puzzle in stairs)
+            {
+                if (puzzle == bitboard)
+                {
+                    Console.WriteLine("Found an inverted staircase!");
+                    PrintBitboard(puzzle);
+                    Console.WriteLine("\n\n\n");
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public static void SeparatePuzzles(string inputFilePath, string outputFilePath)
         {
             List<ulong> values = new List<ulong>();
+            List<ulong> bad = new List<ulong>();
             ProcessBinaryFileRead(inputFilePath, reader =>
             {
                 if (reader.BaseStream.Length % 8 != 0)
@@ -1725,21 +1820,149 @@ namespace Primary_Puzzle_Solver
                 while (reader.BaseStream.Position < reader.BaseStream.Length)
                 {
                     ulong value = reader.ReadUInt64();
-                    if(TwoByTwo(value) == true)
+                    // This should have the highest priority
+                    if (PuzzlesToExclude(value) == true)
                     {
+                        //Console.WriteLine("We're not keeping this. It's a puzzle to exclude.");
+                        //PrintBitboard(value);
+                        bad.Add(value);
+                        continue;
+                    }
+                    // This should have 2nd priority
+                    if (TwoByTwo(value) > 0)
+                    {
+                        //Console.WriteLine("Keep anything with a 2x2.");
+                        //PrintBitboard(value);
                         values.Add(value);
+                    }
+                    else if (ThreeWayIntersection(value) == true)
+                    {
+                        //Console.WriteLine("This should have a three-way intersection and no 2x2 regions.");
+                        //PrintBitboard(value);
+                        values.Add(value);
+                    }
+                    else if (BitOperations.PopCount(~value) > 11)
+                    {
+                        // This bitboard doesn't have any 2x2 regions
+                        // This bitboard doesn't have any 3-way intersections
+                        // This bitobard only contains snakes
+                        // Let's only keep ones that have more than 11 empty cells
+                        // This ensures that every bitboard contains at least 2 bends, with all but 1 having 3 or more
+                        //Console.WriteLine("We're not keeping this because it doesn't contain an intersection nor 2x2 (snake)");
+                        //PrintBitboard(value);
+                        values.Add(value);
+                    }
+                    else
+                    {
+                        //Console.WriteLine("This bitboard only contains a snake, but it has 9 empty cells or less.");
+                        //PrintBitboard(value);
+                        //Console.WriteLine();
+                        bad.Add(value);
                     }
                 }
             });
 
+            Console.WriteLine($"Values: {values.Count}");
+            Console.WriteLine($"Bad: {bad.Count}");
+            foreach (ulong badPuzzle in bad)
+            {
+                PrintBitboard(badPuzzle);
+            }
             ProcessBinaryFileWrite(outputFilePath, writer =>
             {
-                foreach(ulong value in values)
+                foreach (ulong value in values)
                 {
                     writer.Write(value);
                 }
             });
         }
 
+
+        /// <summary>
+        /// Loops over each ulong in good puzzle list from startIndex<br></br>
+        /// Get a solution list for the puzzle at startIndex<br></br>
+        /// Then, seach the next puzzle for any matching states (agnostics = color order doesn't matter)<br></br>
+        /// It should be n steps away from the previous one<br></br>
+        /// Keep going until you find count of them<br></br>
+        /// Return a list of them
+        /// </summary>
+        /// <param name="startIndex">The starting bitboard</param>
+        /// <param name="count">How many times we doing this?</param>
+        /// <param name="difficulty">Minimum number of moves</param>
+        public static void SimilarStateSearch(int startIndex, int count, int difficulty)
+        {
+
+        }
+
+        public static sbyte down = 8;
+        public static sbyte right = 1;
+
+
+        /// <summary>
+        /// Very simple PolyominoChecker<br></br>
+        /// Scans for the first bit of a polyomino. Then does a breath-first search<br></br>
+        /// If the number of visited cells = the number of empty cells, then it was a polyomino.
+        /// </summary>
+        /// <param name="bitboard"></param>
+        public static bool PolyominoChecker(ulong bitboard)
+        {
+            // This should count the zeros
+            int population = 64 - BitOperations.PopCount(bitboard);
+            HashSet<sbyte> visited = new HashSet<sbyte>();
+            Queue<sbyte> queue = new Queue<sbyte>();
+
+            // Find the first 0
+            for (sbyte i = 0; i < 64; i++)
+            {
+                if (GetBitboardCell(bitboard, i) == false)
+                {
+                    visited.Add(i);
+                    queue.Enqueue(i);
+                    break;
+                }
+            }
+
+            while (queue.Count > 0)
+            {
+                sbyte index = queue.Dequeue();
+                if(index - right > 0 && GetBitboardCell(bitboard, index - right) == false)
+                {
+                    if (!visited.Contains(index - right)
+                    {
+                        visited.Add(index - right);
+                        queue.Enqueue(index - right);
+                    }
+                }
+                if (index - up > 0 && GetBitboardCell(bitboard, index - up) == false)
+                {
+                    if (!visited.Contains(index - up))
+                    {
+                        visited.Add(index - up);
+                        queue.Enqueue(index - 8);
+                    }
+                }
+                if (index + 8 < 64 && GetBitboardCell(bitboard, index + 8) == false)
+                {
+                    if (!visited.Contains(index + 8))
+                    {
+                        visited.Add(index + 8);
+                        queue.Enqueue(index + 8);
+                    }
+                }
+                if (index + 1 < 64 && GetBitboardCell(bitboard, index + 1) == false)
+                {
+                    if (!visited.Contains(index + 1))
+                    {
+                        visited.Add(index + 1);
+                        queue.Enqueue(index + 1);
+                    }
+                }
+            }
+            if(visited.Count == population)
+            {
+                return true;
+            }
+            return false;
+        }
     }
 }
