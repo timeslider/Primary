@@ -1,15 +1,8 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
-using System.Dynamic;
-using System.Linq;
 using System.Numerics;
-using System.Reflection.PortableExecutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.X86;
 using System.Text;
-using System.Threading.Tasks;
 
 [assembly: InternalsVisibleTo("PrimaryUnitTests")]
 
@@ -1904,43 +1897,42 @@ namespace Primary_Puzzle_Solver
         /// If the number of visited cells = the number of empty cells, then it was a polyomino.
         /// </summary>
         /// <param name="bitboard"></param>
+
         public static bool PolyominoChecker(ulong bitboard)
         {
             // This should count the zeros
             int population = 64 - BitOperations.PopCount(bitboard);
-            HashSet<sbyte> visited = new HashSet<sbyte>();
-            Queue<sbyte> queue = new Queue<sbyte>();
 
-            // Find the first 0
-            for (sbyte i = 0; i < 64; i++)
-            {
-                if (GetBitboardCell(bitboard, i) == false)
-                {
-                    visited.Add(i);
-                    queue.Enqueue(i);
-                    break;
-                }
-            }
+            HashSet<int> visited = new HashSet<int>();
+            Queue<int> queue = new Queue<int>();
 
+            // Gets the first empty cell
+            visited.Add(BitOperations.TrailingZeroCount(~bitboard));
+            queue.Enqueue(BitOperations.TrailingZeroCount(~bitboard));
+
+            // This is a basic BFS
             while (queue.Count > 0)
             {
-                sbyte index = queue.Dequeue();
-                if(index - right > 0 && GetBitboardCell(bitboard, index - right) == false)
+                int index = queue.Dequeue();
+                // Left
+                if (index % 8 > 0 && GetBitboardCell(bitboard, index - 1) == false)
                 {
-                    if (!visited.Contains(index - right)
+                    if (!visited.Contains(index - 1))
                     {
-                        visited.Add(index - right);
-                        queue.Enqueue(index - right);
+                        visited.Add(index - 1);
+                        queue.Enqueue(index - 1);
                     }
                 }
-                if (index - up > 0 && GetBitboardCell(bitboard, index - up) == false)
+                // Up
+                if (index >= 8 && GetBitboardCell(bitboard, index - 8) == false)
                 {
-                    if (!visited.Contains(index - up))
+                    if (!visited.Contains(index - 8))
                     {
-                        visited.Add(index - up);
+                        visited.Add(index - 8);
                         queue.Enqueue(index - 8);
                     }
                 }
+                // Down
                 if (index + 8 < 64 && GetBitboardCell(bitboard, index + 8) == false)
                 {
                     if (!visited.Contains(index + 8))
@@ -1949,7 +1941,8 @@ namespace Primary_Puzzle_Solver
                         queue.Enqueue(index + 8);
                     }
                 }
-                if (index + 1 < 64 && GetBitboardCell(bitboard, index + 1) == false)
+                // Right
+                if (index % 8 < 7 && GetBitboardCell(bitboard, index + 1) == false)
                 {
                     if (!visited.Contains(index + 1))
                     {
@@ -1958,11 +1951,9 @@ namespace Primary_Puzzle_Solver
                     }
                 }
             }
-            if(visited.Count == population)
-            {
-                return true;
-            }
-            return false;
+
+            // If we visit all the empty cells, then it will equal the population of the empty cells
+            return visited.Count == population;
         }
     }
 }

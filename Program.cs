@@ -38,21 +38,25 @@ namespace Primary_Puzzle_Solver
             // Laptop Version
             //SeparatePuzzles(@"C:\Users\Rober\Documents\Puzzles Master List Canonical Sorted 8 by 8 inverted reversed.bin", @"C:\Users\Rober\Documents\No intersections.bin");
 
-            Action myAction = () =>
-            {
-                List<ulong> polyominoes = new List<ulong>();
-                Parallel.For(0, 68719476, i =>
-                {
-                    ulong u = (ulong)(i + (-(long.MinValue + 1))) + 1;
-                    if (PolyominoChecker(u) == false)
-                    {
-                        polyominoes.Add(u);
-                    }
-                });
-                Console.WriteLine(polyominoes.Count);
-            };
+            
+            Console.WriteLine(Util.PolyominoChecker(9));
+            //Action myAction = () =>
+            //{
+            //    List<ulong> polyominoes = new List<ulong>();
+            //    Parallel.For(0, 68_719_4767, i =>
+            //    {
+            //        ulong u = (ulong)(i + (-(long.MinValue + 1))) + 1;
+            //        if (PolyominoChecker(u) == true)
+            //        {
+            //            polyominoes.Add(u);
+            //        }
+            //    });
+            //    Console.WriteLine(polyominoes.Count);
+            //};
 
-            TimeAction(myAction, 1);
+            //TimeAction(myAction, 1);
+
+            Console.WriteLine();
 
             //foreach (ulong polyomino in polyominoes)
             //{
