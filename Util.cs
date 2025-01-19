@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.X86;
 using System.Text;
+using static System.Net.Mime.MediaTypeNames;
 
 [assembly: InternalsVisibleTo("PrimaryUnitTests")]
 
@@ -1956,8 +1957,27 @@ namespace Primary_Puzzle_Solver
             return visited.Count == population;
         }
 
-        public static Dictionary<string, int> stateNumbers = new Dictionary<string, int>();
-        private static List<int> transitions = new List<int>();
+        /// <summary>
+        /// Map from the long-form state code for each state to the state number
+        /// see expandState.
+        /// 
+        /// This is only used during state table construction.
+        /// </summary>
+        public static Dictionary<string, ushort> stateNumbers = new Dictionary<string, ushort>();
+
+        /// <summary>
+        /// Packed map from (state*256 + next_row_byte) -> transition
+        /// 
+        /// transition is next_state + (island_count<<12), where island_count is the
+        /// number of islands cut off from the further rows
+        /// </summary>
+        public static List<ushort> transitions = new List<ushort>();
+
+        /// <summary>
+        /// The byte representing a row of all water.  Note that this code counts
+        /// 0-islands, not 1-islands
+        /// </summary>
+        public const byte ALL_WATER = (byte)0xFF;
 
         #region Disjoint Set
         /*
@@ -2016,24 +2036,21 @@ namespace Primary_Puzzle_Solver
         #endregion
 
 
-        // the fail state number
-        const int FAILSTATE = -1;
-
-
         /// <summary>
         /// Expands the specified state code.
         /// 
         /// A state code is a string of digits.
         ///  0 => water
         ///  x => island number x.  new islands are numbered from left to right
-        ///  
         /// </summary>
         /// <param name="stateCode">The state code to expand.</param>
         /// <param name="nextrow">the lower 8 bits represent the next row.  0-bits are land</param>
-        /// <returns>The state number for the next row state</returns>
-        public static int expandState(string stateCode, int nextrow)
+        /// <returns>The transition code for the transition from stateCode to nextrow</returns>
+        public static ushort ExpandState(string stateCode, int nextrow)
         {
             // convert the next row into a disjoint set array
+            // if you want to count 1-islands instead of 0-islands, change `~nextrow` into `nextrow` below,
+            // and fix the ALL_WATER constant
             int[] sets = new int[8];
             for (int i = 0; i < 8; ++i)
             {
@@ -2048,12 +2065,14 @@ namespace Primary_Puzzle_Solver
             }
             // map from state code island to first attached set in sets
             int[] links = [-1, -1, -1, -1, -1, -1, -1, -1];
+            int topIslandCount = 0;
             for (int i = 0; i < 8; ++i)
             {
                 char digit = stateCode[i];
-                if (sets[i] > 0 && digit > '0')
+                int topisland = digit - '1';
+                topIslandCount = Math.Max(topIslandCount, topisland + 1);
+                if (sets[i] != 0 && topisland >= 0)
                 {
-                    int topisland = digit - '1';
                     // connection from prev row to nextrow
                     int bottomSet = links[topisland];
                     if (bottomSet < 0)
@@ -2069,19 +2088,19 @@ namespace Primary_Puzzle_Solver
                 }
             }
 
-            // fail if there are disconnected islands in the previous row
-            for (int i = 0; i < 8; ++i)
+            // count the number of top-row islands that don't connect to the next row.
+            int cutOffCount = 0;
+            for (int i = 0; i < topIslandCount; ++i)
             {
-                char digit = stateCode[i];
-                if (digit > '0' && links[digit - '1'] < 0)
+                if (links[i] < 0)
                 {
-                    return FAILSTATE;
+                    ++cutOffCount;
                 }
             }
 
+            // turn the new union-find array into a state code
             char nextSet = '1';
             char[] newChars = "00000000".ToCharArray();
-            // turn the new union-find array into a state code
             for (int i = 0; i < 8; ++i)
             {
                 links[i] = -1;
@@ -2109,28 +2128,43 @@ namespace Primary_Puzzle_Solver
             if (stateNumbers.ContainsKey(newStateCode))
             {
                 // state already exists and is/will be expanded
-                return stateNumbers[newStateCode];
+                return (ushort)(stateNumbers[newStateCode] | (cutOffCount << 12));
             }
-            int newState = stateNumbers.Count;
+            ushort newState = (ushort)stateNumbers.Count;
             stateNumbers.Add(newStateCode, newState);
 
             // fill out the state table
             while (transitions.Count <= (newState + 1) * 256)
             {
-                transitions.Add(FAILSTATE);
+                transitions.Add(0);
             }
-
             for (int i = 0; i < 256; ++i)
             {
-                transitions[newState * 256 + i] = expandState(newStateCode, i);
+                transitions[newState * 256 + i] = ExpandState(newStateCode, i);
             }
-            return newState;
+            return (ushort)(newState | (cutOffCount << 12));
         }
 
-        //public static bool IsPolyomino(ulong bitboard)
-        //{
+        
 
-        //}
+
+
+        public static int Count0Islands(ulong bitboard)
+        {
+            int state = 0;
+            int count = 0;
+            for (int i = 0; i < 8; ++i)
+            {
+                var transition = transitions[state * 256 + (int)(bitboard & 0xFF)];
+                count += transition >> 12;
+                state = transition & 0xFFF;
+                bitboard >>= 8;
+            }
+            // transition to ALL_WATER to count last islands
+            count += transitions[state * 256 + ALL_WATER] >> 12;
+            return count;
+        }
+
 
     }
 }

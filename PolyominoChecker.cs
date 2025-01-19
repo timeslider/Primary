@@ -55,30 +55,7 @@ public class PolyominoChecker
         for (int row = 0; row < 8; row++)
         {
             byte rowBits = (byte)((bitboard >> (row * 8)) & 0xFF);
-            int nextState = transitions[state * 256 + rowBits];
-
-            // If we hit a fail state
-            if (nextState == FAILSTATE)
-            {
-                // Check if we've processed all meaningful rows
-                bool remainingRowsEmpty = true;
-                for (int remainingRow = row + 1; remainingRow < 8; remainingRow++)
-                {
-                    byte remaining = (byte)((bitboard >> (remainingRow * 8)) & 0xFF);
-                    if (remaining != 0xFF)  // If not all 1s (water)
-                    {
-                        remainingRowsEmpty = false;
-                        break;
-                    }
-                }
-
-                if (remainingRowsEmpty)
-                {
-                    // Time to check the current state before the FAILSTATE
-                    return CheckFinalState(state);
-                }
-                return false;
-            }
+            int nextState = transitions[state * 256 + row];
 
             state = nextState;
         }

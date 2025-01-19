@@ -41,12 +41,33 @@ namespace Primary_Puzzle_Solver
 
             //Console.WriteLine(Util.PolyominoChecker(9));
 
+            // Build the tables
+            int startState = ExpandState("00000000", (byte)0xFF);
 
-            var checker = new PolyominoChecker();
+            ulong[] tests = 
+            {
+            0x7e220a7e4a58580Ful,
+            0x7e22087e4a58580Ful,
+            0xFFFFFFFFFFFFFFFFul,
+            0x813c425a5a423c81ul
+            };
 
-            ulong square = 0b0000010000000100000001000000010000001100000011000000010000000100;
-
-            Console.WriteLine($"Is polyomino: {checker.IsPolyomino(square)}");
+            foreach (ulong test in tests)
+            {
+                Console.WriteLine();
+                Console.WriteLine();
+                PrintBitboard(test);
+                for (int row = 0; row < 8; ++row)
+                {
+                    int rowByte = (int)(test >> (row * 8)) & 0xFF;
+                    string rowStr = Convert.ToString(rowByte, 2).PadLeft(8, '0');
+                    rowStr = rowStr.Replace("1", " ");
+                    rowStr = rowStr.Replace("0", "#");
+                    Console.WriteLine(rowStr);
+                }
+                Console.WriteLine();
+                Console.WriteLine("Islands: " + Count0Islands(test));
+            }
 
 
 
