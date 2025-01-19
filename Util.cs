@@ -1955,5 +1955,182 @@ namespace Primary_Puzzle_Solver
             // If we visit all the empty cells, then it will equal the population of the empty cells
             return visited.Count == population;
         }
+
+        public static Dictionary<string, int> stateNumbers = new Dictionary<string, int>();
+        private static List<int> transitions = new List<int>();
+
+        #region Disjoint Set
+        /*
+         * Disjoint set the proper way.  The sets are integers in an array:
+         * For each integer i
+         *   - i === 0 => set is uninitialized (not yet a set)
+         *   - i < 0 => set is a link to ~i
+         *   - i >= 0 => set is of size i
+         */
+
+        // find with path compression.
+        private static int find(int[] sets, int s)
+        {
+            int parent = sets[s];
+            if (parent > 0)
+            {
+                return s;
+            }
+            else if (parent < 0)
+            {
+                parent = find(sets, ~parent);
+                sets[s] = ~parent;
+                return parent;
+            }
+            else
+            {
+                sets[s] = 1;
+                return s;
+            }
+        }
+
+        // union by size
+        private static bool union(int[] sets, int x, int y)
+        {
+            x = find(sets, x);
+            y = find(sets, y);
+            if (x == y)
+            {
+                return false;
+            }
+            int szx = sets[x];
+            int szy = sets[y];
+            if (szx < szy)
+            {
+                sets[y] += szx;
+                sets[x] = ~y;
+            }
+            else
+            {
+                sets[x] += szy;
+                sets[y] = ~x;
+            }
+            return true;
+        }
+
+        #endregion
+
+
+        // the fail state number
+        const int FAILSTATE = -1;
+
+
+        /// <summary>
+        /// Expands the specified state code.
+        /// 
+        /// A state code is a string of digits.
+        ///  0 => water
+        ///  x => island number x.  new islands are numbered from left to right
+        ///  
+        /// </summary>
+        /// <param name="stateCode">The state code to expand.</param>
+        /// <param name="nextrow">the lower 8 bits represent the next row.  0-bits are land</param>
+        /// <returns>The state number for the next row state</returns>
+        public static int expandState(string stateCode, int nextrow)
+        {
+            // convert the next row into a disjoint set array
+            int[] sets = new int[8];
+            for (int i = 0; i < 8; ++i)
+            {
+                sets[i] = (~nextrow >> i) & 1;
+            }
+            for (int i = 0; i < 7; ++i)
+            {
+                if (((~nextrow >> i) & 3) == 3)
+                {
+                    union(sets, i, i + 1);
+                }
+            }
+            // map from state code island to first attached set in sets
+            int[] links = [-1, -1, -1, -1, -1, -1, -1, -1];
+            for (int i = 0; i < 8; ++i)
+            {
+                char digit = stateCode[i];
+                if (sets[i] > 0 && digit > '0')
+                {
+                    int topisland = digit - '1';
+                    // connection from prev row to nextrow
+                    int bottomSet = links[topisland];
+                    if (bottomSet < 0)
+                    {
+                        // this island is not yet connected
+                        links[topisland] = i;
+                    }
+                    else
+                    {
+                        // the top island is already connected. union bottom sets
+                        union(sets, bottomSet, i);
+                    }
+                }
+            }
+
+            // fail if there are disconnected islands in the previous row
+            for (int i = 0; i < 8; ++i)
+            {
+                char digit = stateCode[i];
+                if (digit > '0' && links[digit - '1'] < 0)
+                {
+                    return FAILSTATE;
+                }
+            }
+
+            char nextSet = '1';
+            char[] newChars = "00000000".ToCharArray();
+            // turn the new union-find array into a state code
+            for (int i = 0; i < 8; ++i)
+            {
+                links[i] = -1;
+            }
+            for (int i = 0; i < 8; ++i)
+            {
+                if (sets[i] != 0)
+                {
+                    int set = find(sets, i);
+                    int link = links[set];
+                    if (link >= 0)
+                    {
+                        newChars[i] = newChars[link];
+                    }
+                    else
+                    {
+                        newChars[i] = nextSet++;
+                        links[set] = i;
+                    }
+                }
+            }
+            string newStateCode = new string(newChars);
+
+            // get the state number
+            if (stateNumbers.ContainsKey(newStateCode))
+            {
+                // state already exists and is/will be expanded
+                return stateNumbers[newStateCode];
+            }
+            int newState = stateNumbers.Count;
+            stateNumbers.Add(newStateCode, newState);
+
+            // fill out the state table
+            while (transitions.Count <= (newState + 1) * 256)
+            {
+                transitions.Add(FAILSTATE);
+            }
+
+            for (int i = 0; i < 256; ++i)
+            {
+                transitions[newState * 256 + i] = expandState(newStateCode, i);
+            }
+            return newState;
+        }
+
+        //public static bool IsPolyomino(ulong bitboard)
+        //{
+
+        //}
+
     }
 }

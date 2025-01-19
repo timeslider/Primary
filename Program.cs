@@ -38,8 +38,18 @@ namespace Primary_Puzzle_Solver
             // Laptop Version
             //SeparatePuzzles(@"C:\Users\Rober\Documents\Puzzles Master List Canonical Sorted 8 by 8 inverted reversed.bin", @"C:\Users\Rober\Documents\No intersections.bin");
 
-            
-            Console.WriteLine(Util.PolyominoChecker(9));
+
+            //Console.WriteLine(Util.PolyominoChecker(9));
+
+
+            var checker = new PolyominoChecker();
+
+            ulong square = 0b0000010000000100000001000000010000001100000011000000010000000100;
+
+            Console.WriteLine($"Is polyomino: {checker.IsPolyomino(square)}");
+
+
+
             //Action myAction = () =>
             //{
             //    List<ulong> polyominoes = new List<ulong>();
