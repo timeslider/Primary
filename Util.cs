@@ -2149,20 +2149,128 @@ namespace Primary_Puzzle_Solver
 
 
 
-        public static int Count0Islands(ulong bitboard)
+        //public static int Count0Islands(ulong bitboard)
+        //{
+        //    int state = 0;
+        //    int count = 0;
+        //    for (int i = 0; i < 8; ++i)
+        //    {
+        //        var transition = transitions[state * 256 + (int)(bitboard & 0xFF)];
+        //        count += transition >> 12;
+        //        state = transition & 0xFFF;
+        //        bitboard >>= 8;
+        //    }
+        //    // transition to ALL_WATER to count last islands
+        //    count += transitions[state * 256 + ALL_WATER] >> 12;
+        //    return count;
+        //}
+
+        /// <summary>
+        /// checker_state + next_row_number * 4096 + have_islands*65536 -> generator_state
+        /// </summary>
+        private static Dictionary<int, ushort> genStateNumbers = new Dictionary<int, ushort>();
+        /// <summary>
+        /// Generator states.  These for a DFA that accepts all 8-row polyminoes.
+        /// State 0 is used as both the unique start state and the unique accept state
+        /// </summary>
+        public static List<List<GenTransitionInfo>> genStates = new List<List<GenTransitionInfo>>();
+
+        /// <summary>
+        /// Fill out a state in the generator table if it doesn't exist
+        /// Return the state number
+        /// </summary>
+        public static ushort MakeGenState(int nextRowNumber, int checkerState, int haveIslands)
+        {
+            int stateKey = checkerState + nextRowNumber * 4096 + haveIslands * 65536;
+            if (genStateNumbers.ContainsKey(stateKey))
+            {
+                return genStateNumbers[stateKey];
+            }
+            ushort newGenState = (ushort)genStates.Count;
+            genStateNumbers.Add(stateKey, newGenState);
+            var tlist = new List<GenTransitionInfo>();
+            genStates.Add(tlist);
+            int transitionsOffset = checkerState * 256;
+            ulong totalPaths = 0;
+            for (int i = 0; i < 256; ++i)
+            {
+                var transition = transitions[transitionsOffset + i];
+                int nextCheckerState = transition & 0x0FFF;
+                var newIslands = (transition >> 12) + haveIslands;
+                if (newIslands > (i == ALL_WATER ? 1 : 0))
+                {
+                    // we are destined to get too many islands this way.
+                    continue;
+                }
+                if (nextRowNumber == 7)
+                {
+                    // all transitions for row 7 have to to the accept state
+                    // calculate total number of islands
+                    newIslands += transitions[nextCheckerState * 256 + ALL_WATER] >> 12;
+                    if (newIslands == 1)
+                    {
+                        totalPaths += 1;
+                        tlist.Add(new GenTransitionInfo { nextRow = (byte)i, nextState = 0, cumulativePaths = totalPaths });
+                    }
+                }
+                else
+                {
+                    ushort nextGenState = MakeGenState(nextRowNumber + 1, nextCheckerState, newIslands);
+                    ulong newPaths = genStates[nextGenState].LastOrDefault().cumulativePaths;
+                    if (newPaths > 0)
+                    {
+                        totalPaths += newPaths;
+                        tlist.Add(new GenTransitionInfo { nextRow = (byte)i, nextState = nextGenState, cumulativePaths = totalPaths });
+                    }
+                }
+            }
+            return newGenState;
+        }
+
+        // generate the DFA
+        
+
+        public static ulong GetNthPolimyno(ulong n)
         {
             int state = 0;
-            int count = 0;
-            for (int i = 0; i < 8; ++i)
+            ulong poly = 0;
+            for (int row = 0; row < 8; ++row)
             {
-                var transition = transitions[state * 256 + (int)(bitboard & 0xFF)];
-                count += transition >> 12;
-                state = transition & 0xFFF;
-                bitboard >>= 8;
+                var tlist = genStates[state];
+                // binary search to find the transition that contains the nth path
+                int hi = tlist.Count - 1;
+                int lo = 0;
+                while (hi > lo)
+                {
+                    int test = (lo + hi) >> 1;
+                    if (n >= tlist[test].cumulativePaths)
+                    {
+                        // test is too low
+                        lo = test + 1;
+                    }
+                    else
+                    {
+                        // test is high enough
+                        hi = test;
+                    }
+                }
+                if (lo > 0)
+                {
+                    n -= tlist[lo - 1].cumulativePaths;
+                }
+                var transition = tlist[lo];
+                poly = (poly << 8) | transition.nextRow;
+                state = transition.nextState;
             }
-            // transition to ALL_WATER to count last islands
-            count += transitions[state * 256 + ALL_WATER] >> 12;
-            return count;
+            return poly;
+        }
+
+
+        public struct GenTransitionInfo
+        {
+            public byte nextRow;
+            public ushort nextState;
+            public ulong cumulativePaths;
         }
     }
 }
