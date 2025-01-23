@@ -2164,7 +2164,5 @@ namespace Primary_Puzzle_Solver
             count += transitions[state * 256 + ALL_WATER] >> 12;
             return count;
         }
-
-
     }
 }

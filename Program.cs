@@ -41,34 +41,206 @@ namespace Primary_Puzzle_Solver
 
             //Console.WriteLine(Util.PolyominoChecker(9));
 
-            // Build the tables
-            int startState = ExpandState("00000000", (byte)0xFF);
+            // Build the states and transitions tables
+            int generateStates = ExpandState("00000000", (byte)0xFF);
 
-            ulong[] tests = 
+            int j = 0;
+            Parallel.For(0, 1_000_000_000, i =>
             {
-            0x7e220a7e4a58580Ful,
-            0x7e22087e4a58580Ful,
-            0xFFFFFFFFFFFFFFFFul,
-            0x813c425a5a423c81ul
+                j++;
+                //Count0Islands((ulong)i);
+            });
+            Console.WriteLine();
+            Console.WriteLine(j);
+
+
+            Dictionary<ulong, ulong> worstOffenders = new Dictionary<ulong, ulong>();
+
+            Util.
+
+
+
+            //worstOffenders.Add(258, 2);
+            //worstOffenders.Add(772, 4);
+            //worstOffenders.Add(1800, 8);
+            //worstOffenders.Add(3856, 16);
+            //worstOffenders.Add(7968, 32);
+            //worstOffenders.Add(16192, 64);
+            //worstOffenders.Add(32640, 128);
+            //worstOffenders.Add(65280, 256);
+            //worstOffenders.Add(130560, 512);
+            //worstOffenders.Add(261120, 1024);
+            //worstOffenders.Add(522240, 2048);
+            //worstOffenders.Add(1044480, 4096);
+            //worstOffenders.Add(2088960, 8192);
+            worstOffenders.Add(4177920, 16384);
+            worstOffenders.Add(8355840, 32768);
+            //worstOffenders.Add(16711680, 64);
+            //worstOffenders.Add(33423360, 64);
+            //worstOffenders.Add(66846720, 64);
+            //worstOffenders.Add(133693440, 64);
+            //worstOffenders.Add(267386880, 64);
+            //worstOffenders.Add(534773760, 64);
+            //worstOffenders.Add(, 64);
+            //worstOffenders.Add(, 64);
+            //worstOffenders.Add(, 64);
+            //worstOffenders.Add(, 64);
+            //worstOffenders.Add(, 64);
+            //worstOffenders.Add(, 64);
+            //worstOffenders.Add(, 64);
+            //worstOffenders.Add(, 64);
+            //worstOffenders.Add(, 64);
+            //worstOffenders.Add(, 64);
+            //worstOffenders.Add(, 64);
+            //worstOffenders.Add(, 64);
+            //worstOffenders.Add(, 64);
+            //worstOffenders.Add(, 64);
+            //worstOffenders.Add(, 64);
+            //worstOffenders.Add(, 64);
+            //worstOffenders.Add(, 64);
+            //worstOffenders.Add(, 64);
+            //worstOffenders.Add(, 64);
+            //worstOffenders.Add(, 64);
+            //worstOffenders.Add(, 64);
+            //worstOffenders.Add(, 64);
+            //worstOffenders.Add(, 64);
+
+            Action action = () =>
+            {
+                for (ulong i = 0; i < 10_000_000; i++)
+                {
+                    if (worstOffenders.ContainsKey(i))
+                    {
+                        //PrintBitboard(i);
+                        //Console.WriteLine($"Skipping ahead by {worstOffenders[i]}");
+                        i += worstOffenders[i];
+                        //PrintBitboard(i);
+                    }
+                    Count0Islands(i);
+                }
             };
 
-            foreach (ulong test in tests)
+            Action action2 = () =>
             {
-                Console.WriteLine();
-                Console.WriteLine();
-                PrintBitboard(test);
-                for (int row = 0; row < 8; ++row)
+                for (ulong i = 0; i < 10_000_000; i++)
                 {
-                    int rowByte = (int)(test >> (row * 8)) & 0xFF;
-                    string rowStr = Convert.ToString(rowByte, 2).PadLeft(8, '0');
-                    rowStr = rowStr.Replace("1", " ");
-                    rowStr = rowStr.Replace("0", "#");
-                    Console.WriteLine(rowStr);
+                    Count0Islands(i);
                 }
-                Console.WriteLine();
-                Console.WriteLine("Islands: " + Count0Islands(test));
-            }
+            };
 
+            TimeAction(action, 100);
+            TimeAction(action2, 100);
+
+
+            //#region test data
+            //List<bool> test = new();
+            //test.Add(false); 
+            //test.Add(true); // 1
+            //test.Add(true);
+            //test.Add(true);
+            //test.Add(true);
+            //test.Add(false);
+            //test.Add(false);
+            //test.Add(false);
+            //test.Add(true); // 8
+            //test.Add(true);
+            //test.Add(true);
+            //test.Add(true);
+            //test.Add(true);
+            //test.Add(false);
+            //test.Add(true); //14
+            //test.Add(true);
+            //test.Add(true);
+            //test.Add(true);
+            //test.Add(true);
+            //test.Add(false);
+            //test.Add(true); //20
+            //test.Add(true);
+            //test.Add(false);
+            //test.Add(true); //23
+            //test.Add(true);
+            //test.Add(true);
+            //test.Add(true);
+            //test.Add(true);
+            //test.Add(true);
+            //test.Add(true);
+            //test.Add(false);
+            //#endregion
+
+            //List<ulong> indices = new List<ulong>();
+            //ulong startIndex = 3_000_000_001;
+            //ulong offsetIndex = 1_000_000_000; // How many to do
+            //bool reset = false;
+            //if (Count0Islands(0) == 1)
+            //{
+            //    indices.Add(0);
+            //}
+            //else { 
+            //    reset = true;
+            //}
+            //// 0 gets taken care of before entering the loop
+            //for (ulong i = startIndex; i < startIndex + offsetIndex; i++)
+            //{
+            //    if (Count0Islands(i) != 1)
+            //    {
+            //        reset = true;
+            //    }
+            //    if (Count0Islands(i) == 1 && reset == true)
+            //    {
+            //        reset = false;
+            //        indices.Add(i);
+            //    }
+            //}
+
+            //Console.WriteLine(indices.Count);
+
+            //foreach (int i in indices)
+            //{
+            //    Console.WriteLine(i);
+            //}
+
+
+
+
+
+
+
+            // Basic
+            //List<int> indices = new List<int>();
+            //bool reset = false;
+            //if (test[0] == true)
+            //{
+            //    indices.Add(0);
+            //}
+            //else
+            //{
+            //    reset = true;
+            //}
+            //for (int i = 1; i < test.Count; i++)
+            //{
+            //    if (test[i] == false)
+            //    {
+            //        reset = true;
+            //    }
+            //    if (test[i] == true && reset == true)
+            //    {
+            //        reset = false;
+            //        indices.Add(i);
+            //    }
+            //}
+
+
+
+
+
+
+
+
+
+            //foreach (ulong puzzle in puzzles)
+            //{
+            //    PrintBitboard(puzzle);
+            //}
 
 
             //Action myAction = () =>
