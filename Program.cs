@@ -34,17 +34,26 @@ namespace Primary_Puzzle_Solver
             MakeGenState(0, startState, 0);
             ulong TOTAL_POLYMINOES = genStates[0].LastOrDefault().cumulativePaths;
 
-            Action action = () =>
-            {
-                for (ulong i = 0; i < 100_000_000; i++)
-                {
-                    GetNthPolimyno(i);
-                }
-            };
+            //ulong startIndex = 1_000_000;
+            //ulong offset = 10;
+            //int maxSolutions = 0;
+            //ulong maxBitboard = 0;
+            //for (ulong i = startIndex; i < startIndex + offset; i++)
+            //{
+            //    Bitboard bitboard = new Bitboard(GetNthPolimyno(i), 8);
+            //    maxSolutions = Math.Max(bitboard.Solutions().Count, maxSolutions);
+            //    if( maxSolutions == bitboard.Solutions().Count)
+            //    {
+            //        maxBitboard = GetNthPolimyno(i);
+            //    }
+            //}
 
-            TimeAction(action, 1);
+            Bitboard bitboard = new Bitboard(3817552, 8);
 
+            var solutions = bitboard.Solutions();
 
+            bitboard.PrintSolution(solutions, solutions.Count - 1);
+            
         }
     }
 }
