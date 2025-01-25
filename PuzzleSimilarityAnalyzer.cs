@@ -43,7 +43,7 @@ namespace Primary_Puzzle_Solver
             int diffCount = CountSetBits(differences);
 
             // Normalize by total board size
-            return (double)diffCount / (board1.Width * board1.Height);
+            return (double)diffCount / (8 * board1.Height);
         }
 
         private SolutionMetrics AnalyzeSolutions(Dictionary<int, List<Direction>> solutions)

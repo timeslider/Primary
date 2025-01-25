@@ -389,7 +389,10 @@ namespace Primary_Puzzle_Solver
         }
 
 
-
+        /// <summary>
+        /// Counts the number of 0s in the bitboard
+        /// </summary>
+        /// <returns></returns>
         public int GetEmptyCellCount()
         {
             // Calculate total number of cells
