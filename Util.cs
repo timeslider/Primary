@@ -1972,6 +1972,20 @@ namespace Primary_Puzzle_Solver
         /// number of islands cut off from the further rows
         /// </summary>
         public static List<ushort> transitions = new List<ushort>();
+        
+        
+        /// <summary>
+        /// checker_state + next_row_number * 4096 + have_islands*65536 -> generator_state
+        /// </summary>
+        public static Dictionary<int, ushort> genStateNumbers = new Dictionary<int, ushort>();
+        
+        
+        /// <summary>
+        /// Generator states.  These for a DFA that accepts all 8-row polyminoes.
+        /// State 0 is used as both the unique start state and the unique accept state
+        /// </summary>
+        public static List<List<GenTransitionInfo>> genStates = new List<List<GenTransitionInfo>>();
+
 
         /// <summary>
         /// The byte representing a row of all water.  Note that this code counts
@@ -2145,35 +2159,6 @@ namespace Primary_Puzzle_Solver
             return (ushort)(newState | (cutOffCount << 12));
         }
 
-        
-
-
-
-        //public static int Count0Islands(ulong bitboard)
-        //{
-        //    int state = 0;
-        //    int count = 0;
-        //    for (int i = 0; i < 8; ++i)
-        //    {
-        //        var transition = transitions[state * 256 + (int)(bitboard & 0xFF)];
-        //        count += transition >> 12;
-        //        state = transition & 0xFFF;
-        //        bitboard >>= 8;
-        //    }
-        //    // transition to ALL_WATER to count last islands
-        //    count += transitions[state * 256 + ALL_WATER] >> 12;
-        //    return count;
-        //}
-
-        /// <summary>
-        /// checker_state + next_row_number * 4096 + have_islands*65536 -> generator_state
-        /// </summary>
-        private static Dictionary<int, ushort> genStateNumbers = new Dictionary<int, ushort>();
-        /// <summary>
-        /// Generator states.  These for a DFA that accepts all 8-row polyminoes.
-        /// State 0 is used as both the unique start state and the unique accept state
-        /// </summary>
-        public static List<List<GenTransitionInfo>> genStates = new List<List<GenTransitionInfo>>();
 
         /// <summary>
         /// Fill out a state in the generator table if it doesn't exist

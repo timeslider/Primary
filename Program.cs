@@ -1,5 +1,6 @@
 using System.Buffers.Text;
 using System.Diagnostics;
+using System.Numerics;
 using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
@@ -29,10 +30,23 @@ namespace Primary_Puzzle_Solver
         public static void Main()
         {
             int startState = ExpandState("00000000", (byte)0xFF);
+            MakeGenState(0, 0, 0);
 
+            Bitboard bitboard = new Bitboard(17925305085690880771UL, 8);
 
-            MakeGenState(0, startState, 0);
-            ulong TOTAL_POLYMINOES = genStates[0].LastOrDefault().cumulativePaths;
+            var x = bitboard.Solutions();
+
+            for (ulong i = 0; i < 1000000; i++)
+            {
+                ulong poly = GetNthPolimyno(i);
+                ulong nValue = GetNValue(poly);
+                if (GetNthPolimyno(GetNValue(poly)) != nValue)
+                {
+                    throw new Exception();
+                }
+            }
+            
+            
 
             //ulong startIndex = 1_000_000;
             //ulong offset = 10;
@@ -48,11 +62,11 @@ namespace Primary_Puzzle_Solver
             //    }
             //}
 
-            Bitboard bitboard = new Bitboard(3817552, 8);
+            //Bitboard bitboard = new Bitboard(3134996844645820385, 8);
 
-            var solutions = bitboard.Solutions();
+            //var solutions = bitboard.Solutions();
 
-            bitboard.PrintSolution(solutions, solutions.Count - 1);
+            //bitboard.PrintSolution(solutions, solutions.Count - 1);
             
         }
     }
