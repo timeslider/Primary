@@ -32,19 +32,24 @@ namespace Primary_Puzzle_Solver
             int startState = ExpandState("00000000", (byte)0xFF);
             MakeGenState(0, 0, 0);
 
-            Bitboard bitboard = new Bitboard(17925305085690880771UL, 8);
-
-            var x = bitboard.Solutions();
-
-            for (ulong i = 0; i < 1000000; i++)
+            int count = 0;
+            foreach(var tlist in genStates)
             {
-                ulong poly = GetNthPolimyno(i);
-                ulong nValue = GetNValue(poly);
-                if (GetNthPolimyno(GetNValue(poly)) != nValue)
-                {
-                    throw new Exception();
-                }
+                count += tlist.Count;
             }
+            Console.WriteLine($"There are {count} tlist.");
+
+            SaveGenStates(@"C:\Users\rober\Documents\Godot Projects\project-primary\gen_states.bin", genStates);
+            LoadGenStates(@"C:\Users\rober\Documents\Godot Projects\project-primary\gen_states.bin");
+
+            //for(int i = 0; i < 10; i++)
+            //{
+            //    Console.WriteLine(genStates[i].Count);
+            //}
+
+            //Console.WriteLine(GetNthPolimyno(100));
+            //Console.WriteLine(GetNValue(18446686640397352959UL));
+            
             
             
 

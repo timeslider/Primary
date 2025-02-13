@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -2287,6 +2288,54 @@ namespace Primary_Puzzle_Solver
             public ulong cumulativePaths;
         }
 
+        public static void SaveGenStates(string filePath, List<List<GenTransitionInfo>> genStates)
+        {
+            using (BinaryWriter writer = new BinaryWriter(File.Open(filePath, FileMode.Create)))
+            {
+                Console.WriteLine($"About to write {(short)genStates.Count} lists.");
+                writer.Write((short)genStates.Count);
+                foreach (var tlist in genStates)
+                {
+                    Console.WriteLine($"This list has {(short)tlist.Count} elements.");
+                    writer.Write((short)tlist.Count);
+                    foreach(var state in tlist)
+                    {
+                        writer.Write(state.nextRow);
+                        writer.Write(state.nextState);
+                        writer.Write(state.cumulativePaths);
+                    }
+                }
+            }
+        }
 
+        //public static List<List<GenTransitionInfo>> LoadGenStates(string filePath)
+        public static void LoadGenStates(string filePath)
+        {
+            ProcessBinaryFileRead(filePath, reader =>
+            {
+                Console.WriteLine(reader.BaseStream.Length); 
+            });
+
+            //return genStates;
+        }
+
+        ////   print("Saved gen_states successfully.")
+        //       public static void SaveGenStates(string filePath, List<List<GenTransitionInfo>> genStates)
+        //       {
+        //           using (BinaryWriter writer = new BinaryWriter(File.Open(filePath, FileMode.Create)))
+        //           {
+        //               foreach (var list in genStates)
+        //               {
+        //                   writer.Write((byte)list.Count); // Outer array size
+        //                   foreach(var state in list)
+        //                   {
+        //                       writer.Write(state.nextRow);          // 1 byte
+        //                       writer.Write(state.nextState);        // 2 bytes (ushort)
+        //                       writer.Write(state.cumulativePaths);  // 8 bytes (ulong)
+        //                   }
+        //               }
+        //           }
+        //           Console.WriteLine($"Saved {genStates.Count} gen_states successfully.");
+        //       }
     }
 }
